@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PulsePy | Playful Python IDE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/dashboard.css" />
+  </head>
+  <body>
+    <div class="cosmic-gradient" aria-hidden="true"></div>
+    <header class="nav-shell">
+      <div class="brand-mark">PulsePy</div>
+      <nav>
+        <a href="challenges.html">Challenges</a>
+        <a href="ide.html">IDE</a>
+        <a href="gamified.html">Game Lab</a>
+        <button class="ghost-btn" id="loginBtn">Log in</button>
+        <button class="solid-btn" id="signupBtn">Sign up</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="tag">AI mentor • Level-based Python quests</p>
+          <h1>Write your first Python spells with a hype squad mentor.</h1>
+          <p>
+            Solve micro challenges, collect XP, and let Gemini-powered hints cheer you
+            on when things glitch. No spoilers, just smart nudges.
+          </p>
+          <div class="cta-row">
+            <button class="solid-btn">Start free sprint</button>
+            <button class="outline-btn">Watch how it works</button>
+          </div>
+          <div class="stat-row">
+            <div>
+              <span class="stat">14</span>
+              <small>micro-concepts per world</small>
+            </div>
+            <div>
+              <span class="stat">92%</span>
+              <small>students finish their first quest</small>
+            </div>
+            <div>
+              <span class="stat">GPT-5.1-Codex-Max</span>
+              <small>mentor tier enabled for all</small>
+            </div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="floating-card challenge" aria-label="challenge preview">
+            <p>Quest 03 · Loops</p>
+            <h3>Make the neon bot wave 5 times.</h3>
+            <div class="progress">
+              <div class="bar"></div>
+            </div>
+            <span>+120 XP if you debug without hints</span>
+          </div>
+          <div class="floating-card mentor" aria-label="mentor response">
+            <h4>Gemini Mentor</h4>
+            <p>
+              "Your loop runs 4 times because <code>range(4)</code> stops early. Try
+              <code>range(5)</code> so Byte waves with every finger."
+            </p>
+          </div>
+          <div class="floating-card streak" aria-label="streak badge">
+            <p>Streak: 7 days</p>
+            <h3>Orbit status: Glowing</h3>
+          </div>
+        </div>
+      </section>
+
+      <section class="split-panel">
+        <div>
+          <p class="tag">Challenge lane</p>
+          <h2>Fast missions, single concepts.</h2>
+          <p>
+            Choose from curated skill tracks. Each prompt is short, playful, and built to
+            test exactly one idea so wins feel instant.
+          </p>
+          <a class="text-link" href="challenges.html">Explore the challenge map →</a>
+        </div>
+        <div class="panel-grid">
+          <article>
+            <h3>Snappy briefs</h3>
+            <p>Readable prompts that feel like texts from a mentor friend.</p>
+          </article>
+          <article>
+            <h3>Hint streaks</h3>
+            <p>Hints level up from emoji clues to structured plans.</p>
+          </article>
+          <article>
+            <h3>Confetti moments</h3>
+            <p>Micro celebrations land every time you submit.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="ide-panel">
+        <div class="ide-preview">
+          <div class="ide-header">
+            <span class="dot red"></span>
+            <span class="dot amber"></span>
+            <span class="dot green"></span>
+            <p>Pulse IDE · live Python</p>
+          </div>
+          <div class="ide-body">
+            <pre>for vibe in range(3):
+    print("PulsePy >>>", vibe)
+            </pre>
+          </div>
+          <div class="mentor-toast">
+            <p>
+              Gemini: "Looks good! Want to try <code>range(1, 4)</code> to show off offsets?"
+            </p>
+          </div>
+        </div>
+        <div class="ide-copy">
+          <p class="tag">Gemini-mentored IDE</p>
+          <h2>A VS Code vibe built for first wins.</h2>
+          <ul>
+            <li>Monaco editor core with realtime linting.</li>
+            <li>Fireside error messages instead of scary stack traces.</li>
+            <li>Gemified XP rings on every successful run.</li>
+          </ul>
+          <a class="text-link" href="ide.html">Open the IDE-only view →</a>
+        </div>
+      </section>
+
+      <section class="gamify-panel">
+        <div class="level-stack">
+          <div class="level-card active">
+            <p>World 01</p>
+            <h3>Print Party</h3>
+            <span>Unlocked ✓</span>
+          </div>
+          <div class="level-card">
+            <p>World 02</p>
+            <h3>Variable Runway</h3>
+            <span>Next at 600 XP</span>
+          </div>
+          <div class="level-card">
+            <p>World 03</p>
+            <h3>Loop Galaxy</h3>
+            <span>Boss quest ready</span>
+          </div>
+        </div>
+        <div class="gamify-copy">
+          <p class="tag">Game loops</p>
+          <h2>XP ladders, avatar energy, squad boards.</h2>
+          <p>
+            Stay motivated with collectible mentors, vibe-based leaderboards, and co-op
+            modes coming soon.
+          </p>
+          <a class="text-link" href="gamified.html">Tour the Game Lab →</a>
+        </div>
+      </section>
+    </main>
+
+    <script src="scripts/app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,191 @@
+.hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  align-items: center;
+}
+
+.hero-copy h1 {
+  font-size: clamp(2.5rem, 4vw, 3.8rem);
+  margin: 1rem 0;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.stat {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.hero-visual {
+  position: relative;
+  min-height: 340px;
+}
+
+.floating-card {
+  position: absolute;
+  background: var(--card-strong);
+  border: 1px solid var(--grid);
+  padding: 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4);
+  animation: float 8s ease-in-out infinite;
+}
+
+.floating-card.challenge {
+  top: 0;
+  left: 0;
+}
+
+.floating-card.mentor {
+  top: 40%;
+  right: 5%;
+  animation-delay: 1.5s;
+}
+
+.floating-card.streak {
+  bottom: 0;
+  left: 20%;
+  animation-delay: 3s;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.split-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel-grid article {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+  padding: 1.3rem;
+}
+
+.ide-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.ide-preview {
+  background: rgba(5, 6, 10, 0.7);
+  border-radius: 22px;
+  border: 1px solid var(--grid);
+}
+
+.ide-header {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--grid);
+}
+
+.ide-header .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-flex;
+}
+
+.dot.red {
+  background: #ff5f56;
+}
+
+.dot.amber {
+  background: #ffbd2e;
+}
+
+.dot.green {
+  background: #27c93f;
+}
+
+.ide-body {
+  padding: 1.5rem;
+  min-height: 200px;
+  font-family: "Space Grotesk", monospace;
+}
+
+.ide-body pre {
+  color: var(--muted);
+}
+
+.mentor-toast {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--grid);
+  color: var(--accent-hot);
+}
+
+.gamify-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+}
+
+.level-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.level-card {
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.level-card.active {
+  border: 1px solid var(--accent-hot);
+}
+
+@media (max-width: 600px) {
+  .cta-row {
+    flex-direction: column;
+  }
+
+  .stat-row {
+    flex-direction: column;
+  }
+
+  .floating-card {
+    position: relative;
+    animation: none;
+    margin-bottom: 1rem;
+  }
+
+  .hero-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: auto;
+  }
+}
