@@ -1,0 +1,44 @@
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(120deg, #141e30, #243b55);
+    color: white;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 20px;
+}
+
+.puzzle-container {
+    width: 300px;
+    height: 300px;
+    margin: 30px auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.tile {
+    background: cyan;
+    color: black;
+    font-size: 28px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.empty {
+    background: #222;
+    cursor: default;
+}
+
+button {
+    padding: 10px 20px;
+    background: cyan;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
