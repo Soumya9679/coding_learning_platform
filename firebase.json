@@ -2,11 +2,13 @@
   "functions": [
     {
       "codebase": "default",
-      "source": "functions"
+      "source": "functions",
+      "runtime": "nodejs20"
     },
     {
       "source": "ai-python",
       "codebase": "ai-python",
+      "runtime": "nodejs20",
       "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",

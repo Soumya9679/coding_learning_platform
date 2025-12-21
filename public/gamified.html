@@ -1,33 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Python Quest - Bug Hunter</title>
-    <link rel="stylesheet" href="styles/gamified.css">
-</head>
-<body>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>PulsePy | Game Lab</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Kanit:wght@500;600&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="styles/base.css" />
+		<link rel="stylesheet" href="styles/gamified.css" />
+	</head>
+	<body class="game-lab-body">
+		<div class="game-lab-backdrop" aria-hidden="true"></div>
+		<header class="game-lab-header">
+			<a class="brand" href="index.html">PulsePy</a>
+			<div class="header-chip">Game Lab · Immersive practice tracks</div>
+			<nav>
+				<a href="challenges.html">Challenges</a>
+				<a href="ide.html">IDE</a>
+				<a class="is-active" href="gamified.html">Game Lab</a>
+			</nav>
+		</header>
 
-<div class="game-container">
-    <h1>🐍 Python Quest: Bug Hunter</h1>
+		<main class="game-lab-main">
+			<section class="hero">
+				<div class="hero-copy">
+					<p class="tag">Designed for hackathon-level flow</p>
+					<h1>Game Lab turns Python drills into cinematic mini-games.</h1>
+					<p>
+						Every mission blends short-form storytelling, Gemini-guided hints, and XP pacing so
+						learners stay focused. Pick a game mode that matches the vibe you want today—tactical,
+						rhythmic, or collaborative.
+					</p>
+					<div class="hero-cta">
+						<button class="play-all" data-play-all>Play all games</button>
+						<button class="ghost" onclick="window.location.href='signup.html'">
+							Save progress
+						</button>
+					</div>
+				</div>
+				<div class="hero-panel" aria-label="Score preview">
+					<div class="orbit">
+						<span>Live XP Orbit</span>
+						<strong>+480 XP</strong>
+						<small>in the last 24h</small>
+					</div>
+					<ul class="hero-stats">
+						<li>
+							<span>96%</span>
+							<small>players finish level one</small>
+						</li>
+						<li>
+							<span>3</span>
+							<small>dynamic mentor tones</small>
+						</li>
+						<li>
+							<span>50+</span>
+							<small>mini narratives</small>
+						</li>
+					</ul>
+				</div>
+			</section>
 
-    <div class="status">
-        <span>Score: <span id="score">0</span></span>
-        <span>Lives: <span id="lives">3</span></span>
-    </div>
+			<section class="games-grid" aria-label="Featured games">
+				<article class="game-card" data-game="1">
+					<div class="card-header">
+						<p class="tag">Game 1</p>
+						<h2>Signal Architect</h2>
+					</div>
+					<p>
+						Build reactive dashboards while debugging real telemetry streams. Practice loops,
+						conditionals, and data cleanup as city lights flicker in sync with your code.
+					</p>
+					<ul class="card-pill-row">
+						<li>Live data puzzles</li>
+						<li>Adaptive hints</li>
+						<li>3-stage boss run</li>
+					</ul>
+					<button class="cta" data-play data-target="game1.html">
+						<span>Play</span>
+						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l8 5-8 5z" /></svg>
+					</button>
+				</article>
 
-    <div class="question-box">
-        <p id="question">Question will appear here</p>
-    </div>
+				<article class="game-card" data-game="2">
+					<div class="card-header">
+						<p class="tag">Game 2</p>
+						<h2>Pulse Sequencer</h2>
+					</div>
+					<p>
+						Compose rhythm-based code riffs. Each correct snippet unlocks a new synth layer, pushing
+						you through timing-sensitive challenges focused on functions and refactoring.
+					</p>
+					<ul class="card-pill-row">
+						<li>Timed combos</li>
+						<li>Function remixes</li>
+						<li>Visualizer mode</li>
+					</ul>
+					<button class="cta" data-play data-target="game2.html">
+						<span>Play</span>
+						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l8 5-8 5z" /></svg>
+					</button>
+				</article>
 
-    <div class="options">
-        <button onclick="checkAnswer(0)"></button>
-        <button onclick="checkAnswer(1)"></button>
-        <button onclick="checkAnswer(2)"></button>
-        <button onclick="checkAnswer(3)"></button>
-    </div>
-<button class="next-btn" onclick="nextQuestion()">Next Level ➡</button>
-</div>
+				<article class="game-card" data-game="3">
+					<div class="card-header">
+						<p class="tag">Game 3</p>
+						<h2>Co-op Circuit</h2>
+					</div>
+					<p>
+						Pair with an AI navigator to fix mission-critical scripts. Experience branching
+						narratives, code reviews, and pair-programmed debugging sessions with real-time feedback.
+					</p>
+					<ul class="card-pill-row">
+						<li>Live mentor chat</li>
+						<li>Branching storylines</li>
+						<li>XP multiplier</li>
+					</ul>
+					<button class="cta" data-play data-target="game3.html">
+						<span>Play</span>
+						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3l8 5-8 5z" /></svg>
+					</button>
+				</article>
+			</section>
 
-<script src="scripts/gamified.js"></script>
-</body>
+			<section class="experience-panel">
+				<div>
+					<p class="tag">Why Game Lab</p>
+					<h2>Smooth transitions, meaningful mentoring.</h2>
+					<p>
+						Micro-animations guide the eye without getting in the way. Responsive cards reflow into a
+						carousel on mobile, and every action is ready to play in a single tap.
+					</p>
+				</div>
+				<div class="timeline">
+					<div>
+						<span>01</span>
+						<h3>Adaptive pacing</h3>
+						<p>Difficulty scales with your accuracy streak and feedback cadence.</p>
+					</div>
+					<div>
+						<span>02</span>
+						<h3>Seamless context</h3>
+						<p>Hints remember past attempts so you never repeat yourself.</p>
+					</div>
+					<div>
+						<span>03</span>
+						<h3>Shareable wins</h3>
+						<p>Export highlight reels or invite friends directly into the current mission.</p>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<script type="module" src="scripts/gamified.js"></script>
+	</body>
 </html>

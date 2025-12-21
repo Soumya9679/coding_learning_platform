@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Python Quest - Bug Hunter</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;600&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="styles/game1.css" />
+    </head>
+    <body>
+        <div class="bg-glow" aria-hidden="true"></div>
+        <div class="bg-grid" aria-hidden="true"></div>
+
+        <main class="game-shell">
+            <header class="topbar">
+                <div class="title">
+                    <span class="emoji">🐍</span>
+                    <div>
+                        <p class="eyebrow">Python Quest</p>
+                        <h1>Bug Hunter</h1>
+                    </div>
+                </div>
+                <div class="metrics">
+                    <div class="pill">Score <strong id="score">0</strong></div>
+                    <div class="pill">Lives <strong id="lives">3</strong></div>
+                    <div class="pill">Level <strong id="level">1</strong></div>
+                </div>
+            </header>
+
+            <section class="card">
+                <div class="progress">
+                    <div class="track"><span class="bar" id="progressBar"></span></div>
+                    <p class="progress-text">Question <span id="currentIdx">1</span> of <span id="total">20</span></p>
+                </div>
+
+                <div class="question-box">
+                    <p class="question" id="question">Question will appear here</p>
+                </div>
+
+                <div class="options" id="options">
+                    <button data-index="0"></button>
+                    <button data-index="1"></button>
+                    <button data-index="2"></button>
+                    <button data-index="3"></button>
+                </div>
+
+                <div class="feedback" id="feedback">Pick the best answer to squash the bug.</div>
+
+                <div class="actions">
+                    <button class="ghost" id="resetBtn">Restart</button>
+                    <button class="primary" id="nextBtn">Next Level ➜</button>
+                </div>
+            </section>
+        </main>
+
+        <script src="scripts/game1.js"></script>
+    </body>
+</html>
