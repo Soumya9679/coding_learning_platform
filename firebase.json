@@ -1,24 +1,9 @@
 {
-  "functions": [
-    {
-      "codebase": "default",
-      "source": "functions",
-      "runtime": "nodejs20"
-    },
-    {
-      "source": "ai-python",
-      "codebase": "ai-python",
-      "runtime": "nodejs20",
-      "disallowLegacyRuntimeConfig": true,
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    }
-  ],
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "runtime": "nodejs20"
+  },
   "hosting": {
     "public": "public",
     "ignore": [
@@ -36,5 +21,21 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true,
+    "firestore": {
+      "port": 8080
+    }
   }
 }

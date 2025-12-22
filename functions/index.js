@@ -1,4 +1,5 @@
 const path = require("path");
+const { spawn } = require("child_process");
 require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -35,6 +36,120 @@ const allowedOrigins = Array.from(
     ].filter(Boolean)
   )
 );
+
+const PYTHON_BINARIES = [process.env.PYTHON_BIN, "python3", "python"].filter(Boolean);
+const PYTHON_TIMEOUT_MS = 5000;
+const RESULT_START = "__PY_EVAL_START__";
+const RESULT_END = "__PY_EVAL_END__";
+const MAX_CODE_CHARACTERS = 8000;
+
+const challengeSuites = {
+  1: {
+    id: "1",
+    title: "Even or Odd",
+    entrypoint: "even_or_odd",
+    tests: [
+      { input: [2], expected: "Even" },
+      { input: [7], expected: "Odd" },
+      { input: [0], expected: "Even" },
+      { input: [-5], expected: "Odd" },
+    ],
+  },
+  2: {
+    id: "2",
+    title: "Prime Number",
+    entrypoint: "is_prime",
+    tests: [
+      { input: [2], expected: true },
+      { input: [3], expected: true },
+      { input: [15], expected: false },
+      { input: [17], expected: true },
+      { input: [1], expected: false },
+    ],
+  },
+  3: {
+    id: "3",
+    title: "Factorial",
+    entrypoint: "factorial",
+    tests: [
+      { input: [0], expected: 1 },
+      { input: [5], expected: 120 },
+      { input: [7], expected: 5040 },
+    ],
+  },
+  4: {
+    id: "4",
+    title: "Fibonacci Series",
+    entrypoint: "fibonacci",
+    tests: [
+      { input: [1], expected: [0] },
+      { input: [2], expected: [0, 1] },
+      { input: [6], expected: [0, 1, 1, 2, 3, 5] },
+    ],
+  },
+  5: {
+    id: "5",
+    title: "Reverse a String",
+    entrypoint: "reverse_string",
+    tests: [
+      { input: ["hello"], expected: "olleh" },
+      { input: ["Python"], expected: "nohtyP" },
+    ],
+  },
+  6: {
+    id: "6",
+    title: "Palindrome Check",
+    entrypoint: "is_palindrome",
+    tests: [
+      { input: ["level"], expected: true },
+      { input: ["RaceCar"], expected: true },
+      { input: ["nurses run"], expected: true },
+      { input: ["python"], expected: false },
+    ],
+  },
+  7: {
+    id: "7",
+    title: "Sum of Digits",
+    entrypoint: "sum_of_digits",
+    tests: [
+      { input: [123], expected: 6 },
+      { input: [90210], expected: 12 },
+      { input: [-409], expected: 13 },
+    ],
+  },
+  8: {
+    id: "8",
+    title: "Largest in List",
+    entrypoint: "largest_in_list",
+    tests: [
+      { input: [[3, 9, 2]], expected: 9 },
+      { input: [[-5, -2, -10]], expected: -2 },
+      { input: [[100, 50, 75, 25]], expected: 100 },
+    ],
+  },
+  9: {
+    id: "9",
+    title: "Count Vowels",
+    entrypoint: "count_vowels",
+    tests: [
+      { input: ["hello world"], expected: 3 },
+      { input: ["PYTHON"], expected: 1 },
+      { input: ["aeiou"], expected: 5 },
+    ],
+  },
+  10: {
+    id: "10",
+    title: "Armstrong Number",
+    entrypoint: "is_armstrong",
+    tests: [
+      { input: [153], expected: true },
+      { input: [370], expected: true },
+      { input: [371], expected: true },
+      { input: [9474], expected: true },
+      { input: [9475], expected: false },
+    ],
+  },
+};
 
 const api = express();
 
@@ -178,6 +293,40 @@ api.get(
   (req, res) => res.json({ user: req.user })
 );
 
+api.post(
+  "/challenges/:challengeId/submit",
+  asyncHandler(async (req, res) => {
+    const challengeId = req.params.challengeId;
+    const challenge = challengeSuites[challengeId];
+
+    if (!challenge) {
+      return res.status(404).json({ error: "Unknown challenge." });
+    }
+
+    const code = (req.body?.code || "").trim();
+    if (!code) {
+      return res.status(400).json({ error: "Send some code to evaluate." });
+    }
+    if (code.length > MAX_CODE_CHARACTERS) {
+      return res.status(413).json({ error: "Code is too large. Keep submissions under 8k characters." });
+    }
+
+    try {
+      const evaluation = await evaluatePythonSubmission(code, challenge);
+      return res.json({
+        challengeId,
+        title: challenge.title,
+        ...evaluation,
+      });
+    } catch (error) {
+      functions.logger.error("Challenge evaluation failed", error);
+      return res.status(error.statusCode || 500).json({
+        error: error.message || "Unable to evaluate code right now.",
+      });
+    }
+  })
+);
+
 api.use((err, req, res, next) => {
   if (err.message === "Origin not allowed") {
     return res.status(403).json({ error: "This origin is not allowed." });
@@ -313,6 +462,169 @@ function fallbackCopy(stdout, stderr) {
     return "Nothing printed yet. Make sure your loop calls print inside the body.";
   }
   return "Compare your lines with the expected output and adjust the spacing or count.";
+}
+
+async function evaluatePythonSubmission(code, challenge) {
+  const harness = buildPythonHarness(code, challenge);
+  const { payload, stdout, stderr } = await runWithPython(harness);
+
+  const tests = Array.isArray(payload?.tests) ? payload.tests : [];
+  const missingEntryPoint = payload?.missingEntryPoint || null;
+  const setupError = payload?.setupError || null;
+  const passed =
+    !missingEntryPoint &&
+    !setupError &&
+    tests.length > 0 &&
+    tests.every((test) => Boolean(test.passed));
+
+  return {
+    passed,
+    tests,
+    stdout,
+    stderr,
+    missingEntryPoint,
+    setupError,
+  };
+}
+
+function buildPythonHarness(sourceCode, challenge) {
+  const encodedTests = Buffer.from(JSON.stringify(challenge.tests), "utf8").toString("base64");
+  const encodedSource = Buffer.from(sourceCode, "utf8").toString("base64");
+  return `
+import json
+import sys
+import base64
+
+START = "${RESULT_START}"
+END = "${RESULT_END}"
+
+source_code = base64.b64decode("${encodedSource}").decode("utf-8")
+tests = json.loads(base64.b64decode("${encodedTests}").decode("utf-8"))
+
+namespace = {"__builtins__": __builtins__, "__name__": "__main__"}
+payload = {}
+
+try:
+    exec(source_code, namespace)
+except Exception as exec_err:
+    payload = {"setupError": repr(exec_err)}
+else:
+    fn_name = ${JSON.stringify(challenge.entrypoint)}
+    fn = namespace.get(fn_name)
+    if not callable(fn):
+        payload = {"missingEntryPoint": fn_name}
+    else:
+        report = []
+        for idx, case in enumerate(tests, 1):
+            args = case.get("input", [])
+            kwargs = case.get("kwargs", {})
+            expected = case.get("expected")
+            try:
+                value = fn(*args, **kwargs)
+                entry = {
+                    "index": idx,
+                    "passed": bool(value == expected),
+                    "expected": expected,
+                    "value": value,
+                }
+                if case.get("message"):
+                    entry["message"] = case["message"]
+                report.append(entry)
+            except Exception as call_err:
+                report.append({
+                    "index": idx,
+                    "passed": False,
+                    "error": repr(call_err),
+                })
+        payload = {"tests": report, "entrypoint": fn_name}
+
+print(START)
+print(json.dumps(payload, default=str))
+print(END)
+`.trim();
+}
+
+async function runWithPython(script) {
+  let lastError = null;
+  for (const binary of PYTHON_BINARIES) {
+    try {
+      return await executePython(binary, script);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        lastError = error;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  const runtimeError =
+    lastError || new Error("Python runtime is not available in the execution environment.");
+  runtimeError.statusCode = 500;
+  throw runtimeError;
+}
+
+function executePython(binary, script) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(binary, ["-c", script], {
+      env: { ...process.env, PYTHONUNBUFFERED: "1" },
+    });
+
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    const timeout = setTimeout(() => {
+      proc.kill("SIGKILL");
+    }, PYTHON_TIMEOUT_MS);
+
+    proc.stdout.on("data", (chunk) => stdoutChunks.push(chunk));
+    proc.stderr.on("data", (chunk) => stderrChunks.push(chunk));
+
+    proc.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+
+    proc.on("close", (code, signal) => {
+      clearTimeout(timeout);
+      if (signal === "SIGKILL") {
+        const timeoutError = new Error(
+          "Code execution timed out. Ensure your solution finishes quickly."
+        );
+        timeoutError.statusCode = 408;
+        return reject(timeoutError);
+      }
+
+      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf8");
+
+      try {
+        const { payload, strippedStdout } = parseRunnerOutput(stdout);
+        return resolve({ payload, stdout: strippedStdout, stderr: stderr.trim() });
+      } catch (error) {
+        error.statusCode = 500;
+        error.stdout = stdout;
+        error.stderr = stderr;
+        return reject(error);
+      }
+    });
+  });
+}
+
+function parseRunnerOutput(stdoutText = "") {
+  const startIndex = stdoutText.indexOf(RESULT_START);
+  const endIndex = stdoutText.indexOf(RESULT_END);
+
+  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+    throw new Error("Missing result payload from Python runner.");
+  }
+
+  const jsonSegment = stdoutText.substring(startIndex + RESULT_START.length, endIndex).trim();
+  const payload = jsonSegment ? JSON.parse(jsonSegment) : {};
+  const strippedStdout = `${stdoutText.substring(0, startIndex)}${stdoutText.substring(
+    endIndex + RESULT_END.length
+  )}`.trim();
+
+  return { payload, strippedStdout };
 }
 
 function isValidEmail(value = "") {
