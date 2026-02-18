@@ -1,0 +1,136 @@
+:root {
+  --bg: #05060a;
+  --card: rgba(255, 255, 255, 0.04);
+  --card-strong: rgba(255, 255, 255, 0.12);
+  --accent: #6c63ff;
+  --accent-hot: #ff7ac3;
+  --text: #f5f5f5;
+  --muted: rgba(245, 245, 245, 0.7);
+  --grid: rgba(255, 255, 255, 0.08);
+  --blur: blur(22px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  font-family: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  background: radial-gradient(circle at top, #111632, #05060a 60%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+body {
+  padding: 1.5rem;
+}
+
+a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hot);
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  margin-top: 2rem;
+}
+
+.tag {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2rem;
+  color: var(--accent-hot);
+}
+
+.solid-btn,
+.outline-btn,
+.ghost-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.85rem 1.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.solid-btn {
+  background: linear-gradient(120deg, var(--accent), var(--accent-hot));
+  color: #05060a;
+  box-shadow: 0 15px 30px rgba(255, 122, 195, 0.3);
+}
+
+.outline-btn {
+  border: 1px solid var(--grid);
+  background: transparent;
+  color: var(--text);
+}
+
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.solid-btn:hover,
+.outline-btn:hover,
+.ghost-btn:hover {
+  transform: translateY(-3px);
+}
+
+.text-link {
+  font-weight: 600;
+  letter-spacing: 0.08rem;
+}
+
+.cosmic-gradient {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 122, 195, 0.25), transparent 45%),
+    radial-gradient(circle at 80% 0%, rgba(108, 99, 255, 0.25), transparent 50%);
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: -2;
+}
+
+section {
+  background: var(--card);
+  border: 1px solid var(--grid);
+  border-radius: 24px;
+  padding: 2rem;
+  backdrop-filter: var(--blur);
+}
+
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+ul {
+  list-style: none;
+  margin-top: 1rem;
+  color: var(--muted);
+}
+
+ul li::before {
+  content: "✶";
+  margin-right: 0.6rem;
+  color: var(--accent-hot);
+}
+
+@media (max-width: 960px) {
+  body {
+    padding: 1rem;
+  }
+
+  section {
+    padding: 1.5rem;
+  }
+}
