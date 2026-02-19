@@ -11,11 +11,13 @@ import {
   ShieldCheck,
   ArrowLeft,
   Zap,
+  Code2,
 } from "lucide-react";
 
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/challenges", label: "Challenges", icon: Code2 },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
