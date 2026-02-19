@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
@@ -22,6 +22,7 @@ import {
   Route,
   Users,
   Swords,
+  ChevronDown,
 } from "lucide-react";
 import { applyAuthHeaders } from "@/lib/session";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -33,7 +34,12 @@ const navLinks = [
   { href: "/duels", label: "Duels", icon: Swords },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/gamified", label: "Games", icon: Gamepad2 },
+];
+
+const userMenuLinks = [
+  { href: "/profile", label: "Profile", icon: User },
   { href: "/history", label: "History", icon: History },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Navbar() {
@@ -42,6 +48,8 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     hydrate();
@@ -63,7 +71,19 @@ export function Navbar() {
 
   useEffect(() => {
     setMobileOpen(false);
+    setUserMenuOpen(false);
   }, [pathname]);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -93,7 +113,7 @@ export function Navbar() {
 
           {/* Desktop Nav — only visible when authenticated */}
           {isAuth && (
-            <div className="hidden md:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-0.5">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
@@ -102,7 +122,7 @@ export function Navbar() {
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                      "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-accent-muted text-accent-light"
                         : "text-muted hover:text-white hover:bg-white/5"
@@ -117,7 +137,7 @@ export function Navbar() {
                 <Link
                   href="/admin"
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                    "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                     pathname.startsWith("/admin")
                       ? "bg-red-500/15 text-red-400"
                       : "text-muted hover:text-red-400 hover:bg-red-500/10"
@@ -131,33 +151,71 @@ export function Navbar() {
           )}
 
           {/* Auth Controls */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2">
             {isLoading ? (
               <div className="w-20 h-8 bg-bg-elevated rounded-lg animate-pulse" />
             ) : isAuth ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <Link
-                  href="/profile"
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-sm font-bold text-white uppercase shadow-glow hover:shadow-glow-lg transition-shadow"
-                  title="Profile"
-                >
-                  {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
-                </Link>
-                <Link
-                  href="/settings"
-                  className="text-muted hover:text-white transition-colors"
-                  title="Settings"
-                >
-                  <Settings className="w-4 h-4" />
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted hover:text-danger rounded-lg hover:bg-danger-muted transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
+                {/* User dropdown */}
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-xl hover:bg-white/5 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-sm font-bold text-white uppercase shadow-glow">
+                      {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
+                    </div>
+                    <ChevronDown className={cn("w-3.5 h-3.5 text-muted transition-transform", userMenuOpen && "rotate-180")} />
+                  </button>
+                  <AnimatePresence>
+                    {userMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-52 bg-bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50"
+                      >
+                        {/* User info header */}
+                        <div className="px-4 py-3 border-b border-border">
+                          <p className="text-sm font-semibold text-white truncate">{user?.fullName || user?.username}</p>
+                          <p className="text-xs text-muted truncate">@{user?.username}</p>
+                        </div>
+                        <div className="py-1">
+                          {userMenuLinks.map((link) => {
+                            const Icon = link.icon;
+                            const isActive = pathname === link.href;
+                            return (
+                              <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                  "flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors",
+                                  isActive
+                                    ? "text-accent-light bg-accent-muted/50"
+                                    : "text-muted hover:text-white hover:bg-white/5"
+                                )}
+                              >
+                                <Icon className="w-4 h-4" />
+                                {link.label}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                        <div className="border-t border-border py-1">
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2.5 px-4 py-2.5 w-full text-sm text-danger hover:bg-danger-muted transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Logout
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -180,7 +238,7 @@ export function Navbar() {
 
           {/* Mobile Toggle */}
           <button
-            className="md:hidden p-2 text-muted hover:text-white transition-colors"
+            className="lg:hidden p-2 text-muted hover:text-white transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
@@ -196,10 +254,10 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-bg-card/95 backdrop-blur-xl border-b border-border overflow-hidden"
+            className="lg:hidden bg-bg-card/95 backdrop-blur-xl border-b border-border overflow-hidden"
           >
-            <div className="px-4 py-4 space-y-2">
-              {isAuth && navLinks.map((link) => {
+            <div className="px-4 py-4 space-y-1">
+              {isAuth && [...navLinks, ...userMenuLinks].map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
                 return (
@@ -240,6 +298,7 @@ export function Navbar() {
                         {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
                       </div>
                       <span className="text-sm text-muted">{user?.username}</span>
+                      <ThemeToggle />
                     </div>
                     <button
                       onClick={handleLogout}
