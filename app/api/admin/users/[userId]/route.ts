@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateAdmin } from "@/lib/admin";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
+import { writeAuditLog } from "@/lib/auditLog";
 
 interface RouteContext {
   params: Promise<{ userId: string }>;
@@ -54,6 +55,15 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Ne
 
     await userRef.update(payload);
 
+    // Audit log
+    const auditAction = resetXp ? "user.reset_xp" as const
+      : role !== undefined ? (role === "admin" ? "user.promote" as const : "user.demote" as const)
+      : ban !== undefined ? (ban ? "user.ban" as const : "user.unban" as const)
+      : "user.promote" as const;
+    writeAuditLog(auditAction, { uid: adm.uid, email: adm.email }, {
+      targetId: userId, targetType: "user", details: payload,
+    });
+
     return NextResponse.json({ message: "User updated." });
   } catch (err) {
     console.error("Admin user update error:", err);
@@ -82,6 +92,9 @@ export async function DELETE(request: NextRequest, ctx: RouteContext): Promise<N
     }
 
     await userRef.delete();
+    writeAuditLog("user.delete", { uid: adm.uid, email: adm.email }, {
+      targetId: userId, targetType: "user",
+    });
     return NextResponse.json({ message: "User deleted." });
   } catch (err) {
     console.error("Admin user delete error:", err);

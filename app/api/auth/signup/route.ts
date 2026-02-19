@@ -11,6 +11,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
 import { db } from "@/lib/firebase";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 interface SignupBody {
   fullName?: string;
@@ -22,6 +23,15 @@ interface SignupBody {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Rate limit: 5 signups per 15 minutes per IP
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`signup:${ip}`, { max: 5, windowSeconds: 900 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many signup attempts. Try again in ${rl.retryAfterSeconds}s.` },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
     const body: SignupBody = await request.json();
     const {
       fullName = "",

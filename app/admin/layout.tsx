@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   Zap,
   Code2,
+  ScrollText,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -19,6 +20,7 @@ const sidebarLinks = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/challenges", label: "Challenges", icon: Code2 },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/audit", label: "Audit Log", icon: ScrollText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

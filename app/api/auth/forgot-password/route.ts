@@ -4,9 +4,19 @@ import {
   isStrongPassword,
   hashPassword,
 } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Rate limit: 5 attempts per 15 minutes per IP
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`forgot:${ip}`, { max: 5, windowSeconds: 900 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${rl.retryAfterSeconds}s.` },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
     const body = await request.json();
     const { email = "", username = "", newPassword = "", confirmPassword = "" } = body || {};
 

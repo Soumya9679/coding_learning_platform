@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { authenticateAdmin } from "@/lib/admin";
+import { writeAuditLog } from "@/lib/auditLog";
 
 const COLLECTION = "challenges";
 
@@ -42,6 +43,10 @@ export async function PATCH(
 
     await docRef.update(update);
 
+    writeAuditLog("challenge.update", { uid: adm.uid, email: adm.email }, {
+      targetId: challengeId, targetType: "challenge", details: update,
+    });
+
     return NextResponse.json({ id: challengeId, ...update });
   } catch (err) {
     console.error("PATCH challenge error:", err);
@@ -66,6 +71,9 @@ export async function DELETE(
 
   try {
     await docRef.delete();
+    writeAuditLog("challenge.delete", { uid: adm.uid, email: adm.email }, {
+      targetId: challengeId, targetType: "challenge",
+    });
     return NextResponse.json({ deleted: true, id: challengeId });
   } catch (err) {
     console.error("DELETE challenge error:", err);

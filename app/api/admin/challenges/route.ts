@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { authenticateAdmin } from "@/lib/admin";
+import { writeAuditLog } from "@/lib/auditLog";
 
 export interface ChallengeDoc {
   id: string;
@@ -124,6 +125,10 @@ export async function POST(request: NextRequest) {
     };
 
     await db.collection(COLLECTION).doc(docId).set(challengeData);
+
+    writeAuditLog("challenge.create", { uid: adm.uid, email: adm.email }, {
+      targetId: docId, targetType: "challenge", details: { title: challengeData.title },
+    });
 
     return NextResponse.json({ id: docId, ...challengeData }, { status: 201 });
   } catch (err) {

@@ -90,6 +90,7 @@ export default function IdePage() {
   const [selectedChallengeId, setSelectedChallengeId] = useState("1");
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(new Set());
+  const [difficultyFilter, setDifficultyFilter] = useState<number | null>(null);
   
   // Fetch challenges from API
   useEffect(() => {
@@ -272,21 +273,50 @@ def pulse_run(source: str):
         // Simulate test results for visual feedback
         const hasOutput = (result.stdout || "").trim().length > 0;
         if (hasOutput) {
-          setFeedback("Code ran successfully! Submit to check against test cases.");
-          setOutputStatus("success");
-          // Award XP if not already completed
-          if (!completedChallenges.has(challenge.id)) {
-            fetch("/api/leaderboard/xp", {
+          // Submit to server for validation and XP
+          try {
+            const submitRes = await fetch("/api/challenges/submit", {
               method: "POST",
               credentials: "include",
               headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
-              body: JSON.stringify({ action: "challenge_complete", challengeId: challenge.id }),
-            }).catch(() => {});
+              body: JSON.stringify({
+                challengeId: challenge.id,
+                stdout: result.stdout,
+                code,
+              }),
+            });
+            const submitData = await submitRes.json();
+            if (submitData.passed) {
+              setFeedback(submitData.message || "Correct! Challenge passed.");
+              setOutputStatus("success");
+              setCompletedChallenges(prev => new Set([...prev, challenge.id]));
+              setTestResults([
+                { index: 1, passed: true, value: "Output matches expected", expected: challenge.expectedOutput },
+              ]);
+            } else {
+              setFeedback(submitData.message || "Output doesn't match. Check the expected output.");
+              setOutputStatus("error");
+              setTestResults([
+                { index: 1, passed: false, error: submitData.hint || "Output mismatch" },
+              ]);
+            }
+          } catch {
+            // Fallback if submit API fails — use local check
+            setFeedback("Code ran successfully! (offline mode)");
+            setOutputStatus("success");
+            if (!completedChallenges.has(challenge.id)) {
+              fetch("/api/leaderboard/xp", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
+                body: JSON.stringify({ action: "challenge_complete", challengeId: challenge.id }),
+              }).catch(() => {});
+            }
+            setCompletedChallenges(prev => new Set([...prev, challenge.id]));
+            setTestResults([
+              { index: 1, passed: true, value: "Code executed", expected: "No errors" },
+            ]);
           }
-          setCompletedChallenges(prev => new Set([...prev, challenge.id]));
-          setTestResults([
-            { index: 1, passed: true, value: "Code executed", expected: "No errors" },
-          ]);
           lastErrorRef.current = "";
         } else {
           setFeedback(`Your code ran but produced no output. ${challenge.retryHelp}`);
@@ -464,7 +494,33 @@ def pulse_run(source: str):
                     exit={{ opacity: 0, y: -10 }}
                     className="absolute top-full left-0 right-0 mt-2 glass-card p-2 z-50 max-h-80 overflow-y-auto"
                   >
-                    {challenges.map((c) => (
+                    {/* Difficulty Filter */}
+                    <div className="flex items-center gap-1 mb-2 px-1">
+                      <button
+                        onClick={() => setDifficultyFilter(null)}
+                        className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                          difficultyFilter === null ? "bg-accent text-white" : "text-muted hover:text-white"
+                        }`}
+                      >
+                        All
+                      </button>
+                      {[1, 2, 3].map((d) => (
+                        <button
+                          key={d}
+                          onClick={() => setDifficultyFilter(d)}
+                          className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                            difficultyFilter === d
+                              ? d === 1 ? "bg-success/20 text-success" : d === 2 ? "bg-warning/20 text-warning" : "bg-danger/20 text-danger"
+                              : "text-muted hover:text-white"
+                          }`}
+                        >
+                          {d === 1 ? "Easy" : d === 2 ? "Medium" : "Hard"}
+                        </button>
+                      ))}
+                    </div>
+                    {challenges
+                      .filter((c) => difficultyFilter === null || c.difficulty === difficultyFilter)
+                      .map((c) => (
                       <button
                         key={c.id}
                         onClick={() => {

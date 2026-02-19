@@ -91,6 +91,30 @@
     color: #fff;
     font-family: var(--font-sans);
     min-height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  /* ─── Light Theme Override ─── */
+  [data-theme="light"] body {
+    background-color: #f5f5fa;
+    color: #1a1a2e;
+  }
+
+  [data-theme="light"] .glass-card,
+  [data-theme="light"] .glass-card-hover {
+    background: rgba(255, 255, 255, 0.85);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  [data-theme="light"] .bg-bg { background-color: #f5f5fa; }
+  [data-theme="light"] .bg-bg-card { background-color: #ffffff; }
+  [data-theme="light"] .bg-bg-elevated { background-color: #eeeef5; }
+  [data-theme="light"] .text-white { color: #1a1a2e; }
+  [data-theme="light"] .text-muted { color: #6b6b8a; }
+  [data-theme="light"] .border-border { border-color: rgba(0, 0, 0, 0.08); }
+
+  [data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: rgba(108, 92, 231, 0.25);
   }
 
   ::selection {

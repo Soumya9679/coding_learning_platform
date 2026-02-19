@@ -8,6 +8,7 @@ import {
   getSessionCookieOptions,
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 interface LoginBody {
   usernameOrEmail?: string;
@@ -16,6 +17,15 @@ interface LoginBody {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Rate limit: 10 attempts per 15 minutes per IP
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`login:${ip}`, { max: 10, windowSeconds: 900 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many login attempts. Try again in ${rl.retryAfterSeconds}s.` },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
     const body: LoginBody = await request.json();
     const { usernameOrEmail = "", password = "" } = body || {};
     const identifier = usernameOrEmail.trim().toLowerCase();

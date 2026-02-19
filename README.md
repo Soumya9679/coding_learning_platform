@@ -2,7 +2,7 @@
 
 A premium interactive coding-education platform built with **Next.js 15** (App Router), **React 19**, **TypeScript**, and **Tailwind CSS v4**.  
 Students solve 20 graded Python challenges in a live IDE (Pyodide), receive AI mentor hints (Gemini), compete on a real-time leaderboard with XP & achievements, and sharpen skills through **five diverse gamified experiences** — all wrapped in a polished, SaaS-grade UI with smooth animations.  
-Includes a full **Admin Panel** for user management, platform analytics, and dashboards.
+Includes a full **Admin Panel** for user management, challenge CRUD, platform analytics, and dashboards.
 
 ---
 
@@ -42,6 +42,7 @@ Includes a full **Admin Panel** for user management, platform analytics, and das
 | Memory Matrix | `/game4` | Card-matching memory game — match Python concepts to their code. 24 pairs, 3 grid sizes, peek-then-recall mechanic (+XP) |
 | Code Cascade | `/game5` | Falling Python expressions — type the correct output to blast them. 55 expressions, endless mode, combo scoring, wave progression (+XP) |
 | Admin Dashboard | `/admin` | KPI cards (users, XP, activity), top performers, recent signups |
+| Challenge Manager | `/admin/challenges` | Full CRUD for IDE challenges — create, edit, reorder, toggle active/inactive, seed defaults, delete with confirmation |
 | User Management | `/admin/users` | Search, sort, paginate users; promote/demote/reset/delete with confirmation modals |
 | Analytics | `/admin/analytics` | XP/challenge/game/streak distributions, weekly activity, signup trends, per-challenge breakdowns |
 
@@ -95,6 +96,7 @@ coding_learning_platform/
 │   ├── admin/
 │   │   ├── layout.tsx          # Admin sidebar layout + AdminGuard
 │   │   ├── page.tsx            # Admin dashboard (KPIs, top users, signups)
+│   │   ├── challenges/page.tsx # Challenge CRUD manager (create, edit, reorder, seed)
 │   │   ├── users/page.tsx      # User management (search, CRUD, modals)
 │   │   └── analytics/page.tsx  # Visual analytics with CSS bar charts
 │   └── api/
@@ -108,6 +110,9 @@ coding_learning_platform/
 │       ├── admin/
 │       │   ├── check/route.ts          # GET — is current user an admin?
 │       │   ├── stats/route.ts          # GET — dashboard aggregate stats
+│       │   ├── challenges/route.ts         # GET (public+admin) / POST (admin) — list & create challenges
+│       │   ├── challenges/[challengeId]/route.ts # PATCH/DELETE — update or remove a challenge
+│       │   ├── challenges/seed/route.ts    # POST — seed default challenges into Firestore
 │       │   ├── users/route.ts          # GET — paginated user list with search/sort
 │       │   ├── users/[userId]/route.ts # PATCH/DELETE — promote, reset, ban, delete user
 │       │   └── analytics/route.ts      # GET — distributions, trends, per-challenge data
@@ -134,7 +139,6 @@ coding_learning_platform/
 ├── lib/
 │   ├── auth.ts                 # JWT, bcrypt, session helpers
 │   ├── admin.ts                # Admin authentication (ADMIN_EMAILS env + Firestore role)
-│   ├── challenges.ts           # Challenge definitions & validation
 │   ├── firebase.ts             # Firebase Admin singleton
 │   ├── session.ts              # Client-side token helpers + applyAuthHeaders()
 │   ├── gemini.ts               # Gemini API prompt builder
@@ -231,6 +235,11 @@ npm start
 | `POST` | `/api/mentorHint` | Get AI mentor hint for current challenge |
 | `GET` | `/api/admin/check` | Check if current user is admin |
 | `GET` | `/api/admin/stats` | Dashboard aggregates (users, XP, activity) |
+| `GET` | `/api/admin/challenges` | List all challenges (admin sees full data; public sees active only) |
+| `POST` | `/api/admin/challenges` | Create a new challenge (admin only) |
+| `PATCH` | `/api/admin/challenges/[id]` | Update challenge fields (admin only) |
+| `DELETE` | `/api/admin/challenges/[id]` | Delete a challenge (admin only) |
+| `POST` | `/api/admin/challenges/seed` | Seed 20 default challenges (admin, empty-collection guard) |
 | `GET` | `/api/admin/users` | Paginated user list (search, sort, filter) |
 | `PATCH` | `/api/admin/users/[id]` | Update user (role, XP, ban) |
 | `DELETE` | `/api/admin/users/[id]` | Delete user |
@@ -270,10 +279,22 @@ The admin panel is accessible at `/admin` for authorized users. Admin access is 
 | Page | Features |
 |------|----------|
 | Dashboard | 8 KPI cards, top 5 performers, recent signups |
+| Challenge Manager | Full CRUD table — create/edit/delete challenges, reorder via drag, toggle active/inactive, one-click seed of 20 defaults, inline form with all challenge fields (description, criteria, rubric, starter code, expected output, steps, mentor instructions, retry help) |
 | User Management | Search, sortable columns, pagination, promote/demote/reset XP/delete with confirmation modals |
 | Analytics | XP distribution, challenge/game/streak distributions, weekly activity heatmap, 30-day signup trend, per-challenge completion counts |
 
 Admin users see a red **Admin** link in the navbar. The admin layout uses a distinct red accent theme with a sidebar navigation.
+
+> **Challenges are now fully Firestore-backed.** No hardcoded challenge data — admins can create, edit, reorder, and deactivate challenges at any time from the admin panel. The `POST /api/admin/challenges/seed` endpoint populates the 20 default challenges on first setup.
+
+---
+
+## Changelog
+
+| Date | Change |
+|------|--------|
+| 2026-02-20 | Added **Admin Challenge Manager** — full CRUD UI + API for Firestore-backed challenges, seed endpoint, active/inactive toggle |
+| 2026-02-19 | Initial release — IDE, 5 games, leaderboard, admin dashboard, user management, analytics |
 
 ---
 

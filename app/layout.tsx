@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
+import { ThemeHydrator } from "@/components/ThemeHydrator";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -60,8 +61,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`} data-theme="dark">
       <body className="antialiased">
+        <ThemeHydrator />
         <Navbar />
         <main className="pt-16">{children}</main>
       </body>

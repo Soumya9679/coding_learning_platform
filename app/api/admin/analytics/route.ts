@@ -141,6 +141,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const totalUsers = usersSnap.size;
     const avgXp = totalUsers > 0 ? Math.round(totalXp / totalUsers) : 0;
 
+    // ── Submission-level analytics ──
+    let submissionStats: Record<string, { attempts: number; passes: number; totalXp: number }> = {};
+    try {
+      const subsSnap = await db.collection("submissions").get();
+      subsSnap.docs.forEach((doc) => {
+        const d = doc.data();
+        const cId = d.challengeId || "unknown";
+        if (!submissionStats[cId]) {
+          submissionStats[cId] = { attempts: 0, passes: 0, totalXp: 0 };
+        }
+        submissionStats[cId].attempts++;
+        if (d.passed) submissionStats[cId].passes++;
+        submissionStats[cId].totalXp += d.xpAwarded || 0;
+      });
+    } catch {
+      // submissions collection may not exist yet
+    }
+
+    const challengeAnalytics = Object.entries(submissionStats)
+      .map(([id, stats]) => ({
+        challengeId: id,
+        attempts: stats.attempts,
+        passes: stats.passes,
+        successRate: stats.attempts > 0 ? Math.round((stats.passes / stats.attempts) * 100) : 0,
+        totalXpAwarded: stats.totalXp,
+      }))
+      .sort((a, b) => a.successRate - b.successRate); // most-failed first
+
     return NextResponse.json({
       overview: {
         totalUsers,
@@ -161,6 +189,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       challengeCompletions: Object.entries(challengeCompletions)
         .map(([id, count]) => ({ challengeId: id, completions: count }))
         .sort((a, b) => b.completions - a.completions),
+      challengeAnalytics,
     });
   } catch (err) {
     console.error("Admin analytics error:", err);

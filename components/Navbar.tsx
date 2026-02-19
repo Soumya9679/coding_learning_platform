@@ -16,8 +16,10 @@ import {
   Terminal,
   Zap,
   ShieldCheck,
+  User,
 } from "lucide-react";
 import { applyAuthHeaders } from "@/lib/session";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { href: "/ide", label: "IDE", icon: Terminal },
@@ -125,9 +127,14 @@ export function Navbar() {
               <div className="w-20 h-8 bg-bg-elevated rounded-lg animate-pulse" />
             ) : isAuth ? (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-sm font-bold text-white uppercase shadow-glow">
+                <ThemeToggle />
+                <Link
+                  href="/profile"
+                  className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-sm font-bold text-white uppercase shadow-glow hover:shadow-glow-lg transition-shadow"
+                  title="Profile"
+                >
                   {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted hover:text-danger rounded-lg hover:bg-danger-muted transition-all"
@@ -138,6 +145,7 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <ThemeToggle />
                 <Link
                   href="/login"
                   className="px-4 py-2 text-sm text-muted-light hover:text-white transition-colors"
