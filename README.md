@@ -1,7 +1,7 @@
 # PulsePy — AI-Powered Python Learning Platform
 
 A premium interactive coding-education platform built with **Next.js 15** (App Router), **React 19**, **TypeScript**, and **Tailwind CSS v4**.  
-Students solve 10 graded Python challenges in a live IDE (Pyodide), receive AI mentor hints (Gemini), compete on a real-time leaderboard with XP & achievements, and sharpen skills through three gamified experiences — all wrapped in a polished, SaaS-grade UI with smooth animations.
+Students solve 20 graded Python challenges in a live IDE (Pyodide), receive AI mentor hints (Gemini), compete on a real-time leaderboard with XP & achievements, and sharpen skills through **five diverse gamified experiences** — all wrapped in a polished, SaaS-grade UI with smooth animations.
 
 ---
 
@@ -31,12 +31,28 @@ Students solve 10 graded Python challenges in a live IDE (Pyodide), receive AI m
 | Landing Page | `/` | Hero, stats, feature grid, CTA |
 | Sign Up | `/signup` | 5-field registration with validation |
 | Log In | `/login` | Email/username + password auth |
-| Live IDE | `/ide` | 10 challenges, Pyodide runtime, progress bar, timer, keyboard shortcuts, AI mentor hints |
+| Live IDE | `/ide` | 20 challenges, Pyodide runtime, progress bar, timer, keyboard shortcuts, AI mentor hints |
 | Leaderboard | `/leaderboard` | Dynamic rankings from Firestore, personal stats card, achievements, XP guide |
-| Game Lab | `/gamified` | Hub linking to three learning games |
-| Bug Hunter | `/game1` | 20-question Python MCQ quiz with lives & levels (+XP on completion) |
-| Flow Slide | `/game2` | 3×3 tile reorder puzzle with timer (+XP on completion) |
-| Velocity Trials | `/game3` | Race an AI rival by answering output questions (+XP on win) |
+| Game Lab | `/gamified` | Hub linking to five learning games |
+| Syntax Sniper | `/game1` | Type Python snippets against the clock — character-by-character accuracy feedback, WPM tracking, 30 snippets across 3 difficulty tiers (+XP) |
+| Pipeline Puzzle | `/game2` | Shuffled code lines — reorder them into the correct sequence to produce the expected output. 20 puzzles, hint system, streak bonuses (+XP) |
+| Velocity Trials | `/game3` | Race your car against an AI rival by answering Python output questions. Turbo & Shield powerups, 3-lap system, 25 questions (+XP) |
+| Memory Matrix | `/game4` | Card-matching memory game — match Python concepts to their code. 24 pairs, 3 grid sizes, peek-then-recall mechanic (+XP) |
+| Code Cascade | `/game5` | Falling Python expressions — type the correct output to blast them. 55 expressions, endless mode, combo scoring, wave progression (+XP) |
+
+---
+
+## Game Mechanics Overview
+
+Each game teaches Python through a **different interaction model** — no two games feel the same:
+
+| Game | Mechanic | Content |
+|------|----------|---------|
+| **Syntax Sniper** | Real-time typing with accuracy highlighting | 30 Python snippets |
+| **Pipeline Puzzle** | Drag-sort shuffled code lines into order | 20 code arrangement puzzles |
+| **Velocity Trials** | Racing with streak-earned powerups | 25 output questions |
+| **Memory Matrix** | Timed card-matching (concept ↔ code) | 24 concept/code pairs |
+| **Code Cascade** | Action-typing: blast falling expressions | 55 Python expressions |
 
 ---
 
@@ -59,14 +75,15 @@ coding_learning_platform/
 │   │   └── page.tsx
 │   ├── ide/
 │   │   ├── layout.tsx
-│   │   └── page.tsx            # 10 challenges, Monaco editor, Pyodide, AI mentor
+│   │   └── page.tsx            # 20 challenges, Monaco editor, Pyodide, AI mentor
 │   ├── leaderboard/
-│   │   ├── layout.tsx
 │   │   └── page.tsx            # Dynamic rankings, achievements, XP breakdown
-│   ├── gamified/page.tsx
-│   ├── game1/page.tsx          # Bug Hunter — awards XP on completion
-│   ├── game2/page.tsx          # Flow Slide — awards XP on completion
-│   ├── game3/page.tsx          # Velocity Trials — awards XP on win
+│   ├── gamified/page.tsx       # Game Lab hub — links to all 5 games
+│   ├── game1/page.tsx          # Syntax Sniper — typing accuracy game
+│   ├── game2/page.tsx          # Pipeline Puzzle — code line arrangement
+│   ├── game3/page.tsx          # Velocity Trials — AI racing game
+│   ├── game4/page.tsx          # Memory Matrix — concept/code card matching
+│   ├── game5/page.tsx          # Code Cascade — falling expressions action game
 │   └── api/
 │       ├── health/route.ts
 │       ├── auth/
@@ -74,6 +91,9 @@ coding_learning_platform/
 │       │   ├── login/route.ts      # Backfills leaderboard fields for legacy users
 │       │   ├── logout/route.ts
 │       │   └── session/route.ts
+│       ├── challenges/
+│       │   └── [challengeId]/
+│       │       └── submit/route.ts # Challenge submission handler
 │       ├── leaderboard/
 │       │   ├── route.ts            # GET — global rankings sorted by XP
 │       │   ├── me/route.ts         # GET — current user stats + calculated rank
@@ -92,6 +112,7 @@ coding_learning_platform/
 │       └── index.ts             # Barrel export
 ├── lib/
 │   ├── auth.ts                 # JWT, bcrypt, session helpers
+│   ├── challenges.ts           # Challenge definitions & validation
 │   ├── firebase.ts             # Firebase Admin singleton
 │   ├── session.ts              # Client-side token helpers + applyAuthHeaders()
 │   ├── gemini.ts               # Gemini API prompt builder
