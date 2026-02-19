@@ -12,7 +12,7 @@ import { LogIn, Zap } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const hydrate = useAuthStore((s) => s.hydrate);
-  const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "Enter your credentials to continue.", type: "info" });
+  const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "", type: "info" });
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -94,11 +94,16 @@ export default function LoginPage() {
               disabled={loading}
               autoComplete="current-password"
             />
+            <div className="flex justify-end -mt-1">
+              <Link href="/forgot-password" className="text-xs text-accent-light hover:text-accent font-medium transition-colors">
+                Forgot Password?
+              </Link>
+            </div>
             <Button type="submit" loading={loading} className="w-full" size="lg">
               <LogIn className="w-4 h-4" />
               Sign In
             </Button>
-            <StatusMessage message={status.message} type={status.type} />
+            {status.message && <StatusMessage message={status.message} type={status.type} />}
           </form>
 
           <p className="text-center text-sm text-muted">

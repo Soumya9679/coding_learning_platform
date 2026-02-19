@@ -15,7 +15,9 @@ import {
   X,
   Terminal,
   Zap,
+  ShieldCheck,
 } from "lucide-react";
+import { applyAuthHeaders } from "@/lib/session";
 
 const navLinks = [
   { href: "/ide", label: "IDE", icon: Terminal },
@@ -28,10 +30,19 @@ export function Navbar() {
   const { isAuth, user, isLoading, hydrate, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!isAuth) { setIsAdmin(false); return; }
+    fetch("/api/admin/check", { headers: applyAuthHeaders(), credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setIsAdmin(d?.isAdmin === true))
+      .catch(() => setIsAdmin(false));
+  }, [isAuth]);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -91,6 +102,20 @@ export function Navbar() {
                   </Link>
                 );
               })}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                    pathname.startsWith("/admin")
+                      ? "bg-red-500/15 text-red-400"
+                      : "text-muted hover:text-red-400 hover:bg-red-500/10"
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Admin
+                </Link>
+              )}
             </div>
           )}
 
@@ -169,6 +194,20 @@ export function Navbar() {
                   </Link>
                 );
               })}
+              {isAuth && isAdmin && (
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                    pathname.startsWith("/admin")
+                      ? "bg-red-500/15 text-red-400"
+                      : "text-muted hover:text-red-400 hover:bg-red-500/10"
+                  )}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Admin Panel
+                </Link>
+              )}
               <div className={cn(isAuth && "pt-3 border-t border-border")}>
                 {isAuth ? (
                   <div className="space-y-2">
