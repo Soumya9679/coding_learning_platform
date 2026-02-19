@@ -4,8 +4,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
+import { applyAuthHeaders } from "@/lib/session";
 import { Gauge, Lightbulb, ArrowRight, RotateCcw, Flame, Zap, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function awardGameXP(gameId: string, perfect: boolean) {
+  const action = perfect ? "game_perfect" : "game_complete";
+  fetch("/api/leaderboard/xp", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
+    body: JSON.stringify({ action, gameId }),
+  }).catch(() => {});
+}
 
 interface Question {
   concept: string;
@@ -129,6 +140,9 @@ export default function Game3Page() {
         const won = newDist >= 100;
         setBanner(won ? "🏁 Velocity achieved!" : "Perfect exit. Boost engaged.");
         pushTelemetry(`+${boost}m | ${question.concept} mastered`, "success");
+        if (won) {
+          awardGameXP("game3", prev.penalties === 0);
+        }
         return {
           ...prev, distance: newDist, streak: prev.streak + 1,
           speed: Math.min(220, prev.speed + 18),

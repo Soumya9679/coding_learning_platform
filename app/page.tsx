@@ -17,8 +17,8 @@ const features = [
   },
   {
     icon: Trophy,
-    title: "Coding Challenges",
-    desc: "10 curated Python challenges with auto-grading tests. Get instant feedback on every submission.",
+    title: "Leaderboard & XP",
+    desc: "Earn XP by solving challenges and playing games. Climb the rankings and unlock achievements.",
   },
   {
     icon: Gamepad2,
@@ -212,10 +212,11 @@ export default function HomePage() {
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
-                    href="/challenges"
+                    href="/leaderboard"
                     className="inline-flex items-center gap-2 px-7 py-3.5 bg-bg-elevated border border-border text-white font-medium rounded-xl hover:border-accent/40 transition-all"
                   >
-                    Browse Challenges
+                    <Trophy className="w-4 h-4" />
+                    Leaderboard
                   </Link>
                 </div>
               </div>

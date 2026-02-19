@@ -19,7 +19,7 @@ import {
 
 const navLinks = [
   { href: "/ide", label: "IDE", icon: Terminal },
-  { href: "/challenges", label: "Challenges", icon: Trophy },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/gamified", label: "Game Lab", icon: Gamepad2 },
 ];
 

@@ -4,8 +4,19 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
+import { applyAuthHeaders } from "@/lib/session";
 import { Puzzle, Shuffle, Eye, Clock, Move } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function awardGameXP(gameId: string, perfect: boolean) {
+  const action = perfect ? "game_perfect" : "game_complete";
+  fetch("/api/leaderboard/xp", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
+    body: JSON.stringify({ action, gameId }),
+  }).catch(() => {});
+}
 
 interface Tile {
   id: string;
@@ -111,6 +122,7 @@ export default function Game2Page() {
         setStatus("Flow verified");
         setRunning(false);
         stopTimer();
+        awardGameXP("game2", moveCount + 1 <= 15);
       }
       return next;
     });

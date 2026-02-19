@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
+import { applyAuthHeaders } from "@/lib/session";
 import { Bug, Heart, RotateCcw, ArrowRight, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function awardGameXP(gameId: string, perfect: boolean) {
+  const action = perfect ? "game_perfect" : "game_complete";
+  fetch("/api/leaderboard/xp", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
+    body: JSON.stringify({ action, gameId }),
+  }).catch(() => {});
+}
 
 const questions = [
   { q: "What is the output of: print(2 ** 3)?", options: ["6", "8", "9", "Error"], answer: 1 },
@@ -38,6 +49,7 @@ export default function Game1Page() {
   const [answered, setAnswered] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [gameOver, setGameOver] = useState(false);
+  const xpAwarded = useRef(false);
 
   const checkAnswer = useCallback((idx: number) => {
     if (answered) return;
@@ -63,8 +75,13 @@ export default function Game1Page() {
     if (gameOver) return;
     const next = current + 1;
     if (next >= questions.length) {
-      setFeedback(`🏆 You finished all levels! Final score: ${score + (selected === questions[current].answer ? 10 : 0)}.`);
+      const finalScore = score + (selected === questions[current].answer ? 10 : 0);
+      setFeedback(`🏆 You finished all levels! Final score: ${finalScore}.`);
       setGameOver(true);
+      if (!xpAwarded.current) {
+        xpAwarded.current = true;
+        awardGameXP("game1", lives === 3);
+      }
       return;
     }
     setCurrent(next);
@@ -80,6 +97,7 @@ export default function Game1Page() {
     setAnswered(false);
     setSelected(null);
     setGameOver(false);
+    xpAwarded.current = false;
   };
 
   const q = questions[current];

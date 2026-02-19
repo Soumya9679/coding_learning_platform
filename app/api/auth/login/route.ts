@@ -39,10 +39,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
     }
 
-    await userRecord.ref.update({
+    // Backfill leaderboard fields for users who signed up before they existed
+    const updatePayload: Record<string, unknown> = {
       lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    };
+    if (userRecord.xp === undefined) updatePayload.xp = 0;
+    if (userRecord.challengesCompleted === undefined) updatePayload.challengesCompleted = 0;
+    if (userRecord.gamesPlayed === undefined) updatePayload.gamesPlayed = 0;
+    if (userRecord.streak === undefined) updatePayload.streak = 0;
+    if (userRecord.completedChallenges === undefined) updatePayload.completedChallenges = [];
+    if (userRecord.lastActiveDate === undefined) updatePayload.lastActiveDate = "";
+
+    await userRecord.ref.update(updatePayload);
 
     const sessionPayload = buildSessionPayload(userRecord.id, userRecord);
     const sessionToken = signSessionToken(sessionPayload);

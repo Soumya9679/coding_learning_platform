@@ -70,6 +70,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       username: username.trim(),
       usernameNormalized: normalizedUsername,
       passwordHash,
+      xp: 0,
+      challengesCompleted: 0,
+      gamesPlayed: 0,
+      streak: 0,
+      completedChallenges: [],
+      lastActiveDate: "",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
