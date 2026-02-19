@@ -91,6 +91,7 @@ export default function IdePage() {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(new Set());
   const [difficultyFilter, setDifficultyFilter] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   
   // Fetch challenges from API
   useEffect(() => {
@@ -495,7 +496,7 @@ def pulse_run(source: str):
                     className="absolute top-full left-0 right-0 mt-2 glass-card p-2 z-50 max-h-80 overflow-y-auto"
                   >
                     {/* Difficulty Filter */}
-                    <div className="flex items-center gap-1 mb-2 px-1">
+                    <div className="flex items-center gap-1 mb-2 px-1 flex-wrap">
                       <button
                         onClick={() => setDifficultyFilter(null)}
                         className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
@@ -518,8 +519,37 @@ def pulse_run(source: str):
                         </button>
                       ))}
                     </div>
+                    {/* Category Filter */}
+                    {(() => {
+                      const tags = [...new Set(challenges.map((c) => c.tag).filter(Boolean))];
+                      if (tags.length <= 1) return null;
+                      return (
+                        <div className="flex items-center gap-1 mb-2 px-1 flex-wrap">
+                          <button
+                            onClick={() => setCategoryFilter(null)}
+                            className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                              categoryFilter === null ? "bg-accent text-white" : "text-muted hover:text-white"
+                            }`}
+                          >
+                            All Topics
+                          </button>
+                          {tags.map((tag) => (
+                            <button
+                              key={tag}
+                              onClick={() => setCategoryFilter(tag)}
+                              className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                                categoryFilter === tag ? "bg-accent/20 text-accent" : "text-muted hover:text-white"
+                              }`}
+                            >
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {challenges
                       .filter((c) => difficultyFilter === null || c.difficulty === difficultyFilter)
+                      .filter((c) => categoryFilter === null || c.tag === categoryFilter)
                       .map((c) => (
                       <button
                         key={c.id}

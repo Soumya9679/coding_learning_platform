@@ -131,11 +131,32 @@ export default function AdminAnalyticsPage() {
     { label: "Zero XP Users", value: o.usersWithZeroXp.toString(), icon: Users, color: "text-gray-400", bg: "bg-white/5 border-white/10" },
   ];
 
+  const handleExport = (type: string) => {
+    window.open(`/api/admin/export?type=${type}`, "_blank");
+  };
+
   return (
     <div className="p-6 lg:p-8 space-y-8 max-w-7xl">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Analytics</h1>
-        <p className="text-sm text-gray-500 mt-1">Platform metrics & distributions</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Analytics</h1>
+          <p className="text-sm text-gray-500 mt-1">Platform metrics & distributions</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleExport("analytics")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-all"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Export Analytics CSV
+          </button>
+          <button
+            onClick={() => handleExport("audit")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-all"
+          >
+            Export Audit CSV
+          </button>
+        </div>
       </div>
 
       {/* Highlight cards */}

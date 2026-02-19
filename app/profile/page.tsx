@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, Badge, Button } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -26,6 +27,7 @@ import {
   X,
   Loader2,
   User,
+  Settings,
 } from "lucide-react";
 
 interface Achievement {
@@ -75,6 +77,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -215,8 +218,16 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 self-start">
+                    <Button variant="ghost" size="sm" onClick={() => router.push("/settings")}>
+                      <Settings className="w-4 h-4 mr-1.5" />
+                      Settings
+                    </Button>
+                  </div>
+
                   {/* Stats Grid */}
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-6 flex-wrap justify-center basis-full mt-2">
                     {[
                       { icon: TrendingUp, value: profile.xp.toLocaleString(), label: "Total XP", color: "text-warning" },
                       { icon: Target, value: profile.challengesCompleted, label: "Challenges", color: "text-accent-light" },

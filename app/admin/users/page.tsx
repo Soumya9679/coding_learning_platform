@@ -155,9 +155,17 @@ export default function AdminUsersPage() {
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">User Management</h1>
-          <p className="text-sm text-gray-500 mt-1">{total} total user{total !== 1 ? "s" : ""}</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white">User Management</h1>
+            <p className="text-sm text-gray-500 mt-1">{total} total user{total !== 1 ? "s" : ""}</p>
+          </div>
+          <button
+            onClick={() => window.open("/api/admin/export?type=users", "_blank")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-all self-start"
+          >
+            Export CSV
+          </button>
         </div>
         <div className="relative max-w-xs w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />

@@ -17,14 +17,19 @@ import {
   Zap,
   ShieldCheck,
   User,
+  Settings,
+  History,
+  Route,
 } from "lucide-react";
 import { applyAuthHeaders } from "@/lib/session";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { href: "/ide", label: "IDE", icon: Terminal },
+  { href: "/paths", label: "Paths", icon: Route },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/gamified", label: "Game Lab", icon: Gamepad2 },
+  { href: "/history", label: "History", icon: History },
 ];
 
 export function Navbar() {
@@ -134,6 +139,13 @@ export function Navbar() {
                   title="Profile"
                 >
                   {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
+                </Link>
+                <Link
+                  href="/settings"
+                  className="text-muted hover:text-white transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-4 h-4" />
                 </Link>
                 <button
                   onClick={handleLogout}
