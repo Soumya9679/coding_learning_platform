@@ -21,7 +21,12 @@ import {
   Code2,
   FlaskConical,
   Keyboard,
-  RotateCcw
+  RotateCcw,
+  PanelLeftClose,
+  PanelLeftOpen,
+  MessageSquare,
+  Heart,
+  Send
 } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -79,6 +84,17 @@ interface TestResult {
   error?: string;
 }
 
+interface Comment {
+  id: string;
+  username: string;
+  avatar: string;
+  text: string;
+  createdAt: string;
+  likeCount: number;
+  liked?: boolean;
+  likes?: string[];
+}
+
 interface PyodideRuntime {
   pyodide: unknown;
   runner: (code: string) => { toJs: (opts: { dict_converter: typeof Object.fromEntries }) => { stdout: string; stderr: string; error: string }; destroy: () => void };
@@ -92,6 +108,12 @@ export default function IdePage() {
   const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(new Set());
   const [difficultyFilter, setDifficultyFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [discussionOpen, setDiscussionOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [postingComment, setPostingComment] = useState(false);
   
   // Fetch challenges from API
   useEffect(() => {
@@ -379,6 +401,60 @@ def pulse_run(source: str):
     setTimerActive(false);
   };
 
+  const fetchComments = useCallback(async () => {
+    setCommentsLoading(true);
+    try {
+      const res = await fetch(`/api/comments?challengeId=${challenge.id}`, {
+        credentials: "include",
+        headers: applyAuthHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data.comments || []);
+      }
+    } catch { /* ignore */ } finally {
+      setCommentsLoading(false);
+    }
+  }, [challenge.id]);
+
+  const postComment = async () => {
+    if (!commentText.trim() || postingComment) return;
+    setPostingComment(true);
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
+        body: JSON.stringify({ challengeId: challenge.id, text: commentText }),
+      });
+      if (res.ok) {
+        setCommentText("");
+        fetchComments();
+      }
+    } catch { /* ignore */ } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const toggleLike = async (commentId: string) => {
+    try {
+      const res = await fetch("/api/comments", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...applyAuthHeaders() },
+        body: JSON.stringify({ commentId }),
+      });
+      if (res.ok) fetchComments();
+    } catch { /* ignore */ }
+  };
+
+  // Load comments when discussion opens
+  useEffect(() => {
+    if (discussionOpen && completedChallenges.has(challenge.id)) {
+      fetchComments();
+    }
+  }, [discussionOpen, challenge.id, fetchComments, completedChallenges]);
+
   const statusConfig = {
     idle: { label: "Ready", color: "text-muted", icon: Terminal },
     success: { label: "Passed", color: "text-success", icon: CheckCircle2 },
@@ -443,12 +519,20 @@ def pulse_run(source: str):
               </div>
             </div>
             
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
+              {/* Sidebar toggle for mobile */}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-1.5 rounded-lg text-muted hover:text-white hover:bg-bg-elevated transition-colors"
+                title={sidebarOpen ? "Hide challenge panel" : "Show challenge panel"}
+              >
+                {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+              </button>
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 text-muted" />
                 <span className="font-mono text-muted">{formatTime(elapsedTime)}</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted">
+              <div className="hidden sm:flex items-center gap-2 text-xs text-muted">
                 <Keyboard className="w-4 h-4" />
                 <span>Ctrl+Enter to run</span>
               </div>
@@ -457,12 +541,12 @@ def pulse_run(source: str):
         </motion.div>
 
         <div className="grid lg:grid-cols-[320px_1fr] gap-4 flex-1 min-h-0">
-          {/* Left Sidebar - Challenge Panel */}
+          {/* Left Sidebar - Challenge Panel (collapsible on mobile) */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col gap-3 min-h-0"
+            animate={{ opacity: sidebarOpen ? 1 : 0, x: sidebarOpen ? 0 : -20, height: sidebarOpen ? "auto" : 0 }}
+            transition={{ duration: 0.3 }}
+            className={`flex flex-col gap-3 min-h-0 ${sidebarOpen ? "" : "hidden lg:flex"}`}
           >
             {/* Challenge Selector */}
             <div className="relative flex-shrink-0">
@@ -667,15 +751,19 @@ def pulse_run(source: str):
                     options={{
                       minimap: { enabled: false },
                       automaticLayout: true,
-                      fontSize: 13,
+                      fontSize: typeof window !== "undefined" && window.innerWidth < 640 ? 12 : 13,
                       fontFamily: "var(--font-mono), JetBrains Mono, monospace",
                       padding: { top: 8, bottom: 8 },
-                      lineNumbers: "on",
+                      lineNumbers: typeof window !== "undefined" && window.innerWidth < 640 ? "off" : "on",
                       renderLineHighlight: "all",
                       scrollBeyondLastLine: false,
                       smoothScrolling: true,
                       cursorBlinking: "smooth",
                       cursorSmoothCaretAnimation: "on",
+                      wordWrap: "on",
+                      folding: typeof window !== "undefined" && window.innerWidth >= 640,
+                      glyphMargin: false,
+                      lineDecorationsWidth: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : 10,
                     }}
                   />
                 </div>
@@ -688,7 +776,7 @@ def pulse_run(source: str):
             </motion.div>
 
             {/* Output and Mentor Panels */}
-            <div className="grid md:grid-cols-2 gap-3 flex-1 min-h-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
               {/* Output Panel with Tabs */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -823,6 +911,91 @@ def pulse_run(source: str):
                 </Card>
               </motion.div>
             </div>
+
+            {/* Discussion Panel — visible after completing the challenge */}
+            {completedChallenges.has(challenge.id) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="flex-shrink-0"
+              >
+                <Card className="space-y-2">
+                  <button
+                    onClick={() => setDiscussionOpen(!discussionOpen)}
+                    className="w-full flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-accent" />
+                      <span className="text-sm font-medium">Discussion</span>
+                      {comments.length > 0 && (
+                        <Badge variant="accent">{comments.length}</Badge>
+                      )}
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-muted transition-transform ${discussionOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {discussionOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-3"
+                      >
+                        {/* Comment input */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && postComment()}
+                            placeholder="Share your approach…"
+                            maxLength={2000}
+                            className="flex-1 px-3 py-2 bg-bg-elevated rounded-lg text-xs border border-border focus:border-accent/50 outline-none transition-colors"
+                          />
+                          <Button size="sm" onClick={postComment} loading={postingComment}>
+                            <Send className="w-3 h-3" />
+                          </Button>
+                        </div>
+
+                        {/* Comments list */}
+                        {commentsLoading ? (
+                          <p className="text-xs text-muted text-center py-2">Loading…</p>
+                        ) : comments.length === 0 ? (
+                          <p className="text-xs text-muted text-center py-2">No comments yet. Be the first!</p>
+                        ) : (
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {comments.map((c) => (
+                              <div key={c.id} className="flex gap-2 p-2 rounded-lg bg-bg-elevated/50">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                                  {c.avatar || c.username?.charAt(0)?.toUpperCase() || "U"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium">{c.username}</span>
+                                    <span className="text-[10px] text-muted">
+                                      {new Date(c.createdAt).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-light mt-0.5 break-words">{c.text}</p>
+                                  <button
+                                    onClick={() => toggleLike(c.id)}
+                                    className="flex items-center gap-1 mt-1 text-[10px] text-muted hover:text-accent-hot transition-colors"
+                                  >
+                                    <Heart className={`w-3 h-3 ${c.likeCount > 0 ? "fill-accent-hot text-accent-hot" : ""}`} />
+                                    {c.likeCount > 0 && c.likeCount}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Card>
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

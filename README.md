@@ -1,8 +1,8 @@
 # PulsePy — AI-Powered Python Learning Platform
 
 A premium interactive coding-education platform built with **Next.js 15** (App Router), **React 19**, **TypeScript**, and **Tailwind CSS v4**.  
-Students solve 20 graded Python challenges in a live IDE (Pyodide), receive AI mentor hints (Gemini), compete on a real-time leaderboard with XP & achievements, and sharpen skills through **five diverse gamified experiences** — all wrapped in a polished, SaaS-grade UI with smooth animations.  
-Includes a full **Admin Panel** for user management, challenge CRUD, platform analytics, and dashboards.
+Students solve 20 graded Python challenges in a mobile-responsive live IDE (Pyodide), receive AI mentor hints (Gemini), compete on a real-time leaderboard with XP & achievements, battle in **real-time coding duels**, build & share community challenges, and sharpen skills through **five diverse gamified experiences** — all wrapped in a polished, SaaS-grade UI with smooth animations.  
+Includes a full **Admin Panel** for user management, challenge CRUD, platform analytics, and dashboards. Supports **OAuth login** (Google & GitHub), **PWA** install, social features (follow/friends), and challenge discussions.
 
 ---
 
@@ -18,7 +18,7 @@ Includes a full **Admin Panel** for user management, challenge CRUD, platform an
 | Code Editor | Monaco Editor (`@monaco-editor/react`) |
 | Python Runtime | Pyodide (in-browser via CDN) |
 | AI Mentor | Google Gemini API |
-| Auth | JWT + bcryptjs (httpOnly cookies) |
+| Auth | JWT + bcryptjs (httpOnly cookies), OAuth 2.0 (Google, GitHub) |
 | Database | Firebase Admin SDK (Firestore) |
 | XP & Leaderboard | Dynamic Firestore-backed ranking system |
 | Fonts | Space Grotesk + JetBrains Mono (via `next/font`) |
@@ -50,6 +50,12 @@ Includes a full **Admin Panel** for user management, challenge CRUD, platform an
 | User Management | `/admin/users` | Search, sort, paginate users; promote/demote/reset/delete with confirmation modals, CSV export |
 | Analytics | `/admin/analytics` | XP/challenge/game/streak distributions, weekly activity, signup trends, per-challenge breakdowns, CSV export |
 | Audit Log | `/admin/audit` | Track all admin actions — color-coded entries, refresh, CSV export |
+| Community Challenges | `/community` | Browse, create & play user-built challenges with likes, tag filters, difficulty levels |
+| Coding Duels | `/duels` | Real-time head-to-head Python coding battles with lobby, matchmaking, timer, live status, +50 XP to winner |
+| Social Features | `/leaderboard` | Follow/unfollow users, friends-only leaderboard filter, share achievements via Web Share API |
+| Challenge Discussion | `/ide` | Comment on completed challenges, like comments, threaded discussion panel |
+| OAuth Login | `/login`, `/signup` | Sign in with Google or GitHub (OAuth 2.0) alongside email/password |
+| PWA Support | — | Installable Progressive Web App with service worker, offline caching, app manifest |
 | Dark/Light Theme | — | Toggle between dark and light themes (persisted in localStorage) |
 
 ---
@@ -105,6 +111,12 @@ coding_learning_platform/
 │   ├── paths/
 │   │   ├── layout.tsx
 │   │   └── page.tsx            # Learning paths — topic-based challenge sequences
+│   ├── community/
+│   │   ├── layout.tsx
+│   │   └── page.tsx            # Community challenge builder & browser
+│   ├── duels/
+│   │   ├── layout.tsx
+│   │   └── page.tsx            # Real-time coding duels — lobby, arena, results
 │   ├── gamified/page.tsx       # Game Lab hub — links to all 5 games
 │   ├── game1/page.tsx          # Syntax Sniper — typing accuracy game
 │   ├── game2/page.tsx          # Pipeline Puzzle — code line arrangement
@@ -125,7 +137,12 @@ coding_learning_platform/
 │       │   ├── login/route.ts          # Backfills leaderboard fields for legacy users
 │       │   ├── logout/route.ts
 │       │   ├── session/route.ts
-│       │   └── forgot-password/route.ts # Identity-verified password reset
+│       │   ├── forgot-password/route.ts # Identity-verified password reset
+│       │   └── oauth/
+│       │       ├── google/route.ts          # Google OAuth redirect
+│       │       ├── google/callback/route.ts # Google OAuth callback
+│       │       ├── github/route.ts          # GitHub OAuth redirect
+│       │       └── github/callback/route.ts # GitHub OAuth callback
 │       ├── admin/
 │       │   ├── check/route.ts          # GET — is current user an admin?
 │       │   ├── stats/route.ts          # GET — dashboard aggregate stats
@@ -143,6 +160,12 @@ coding_learning_platform/
 │       ├── settings/route.ts           # PATCH / DELETE — change password, delete account
 │       ├── submissions/route.ts        # GET — user's past submissions with code
 │       ├── paths/route.ts              # GET — learning paths from challenge tags + progress
+│       ├── comments/route.ts           # GET/POST/PATCH — challenge discussion comments
+│       ├── community/
+│       │   └── challenges/route.ts     # GET/POST/PATCH — community-built challenges
+│       ├── duels/route.ts              # GET/POST — coding duels (create, join, submit, cancel)
+│       ├── social/
+│       │   └── follow/route.ts         # GET/POST — follow/unfollow users
 │       ├── leaderboard/
 │       │   ├── route.ts            # GET — global rankings sorted by XP
 │       │   ├── me/route.ts         # GET — current user stats + calculated rank
@@ -154,6 +177,7 @@ coding_learning_platform/
 │   ├── AdminGuard.tsx          # Admin-only route wrapper (checks /api/admin/check)
 │   ├── ThemeToggle.tsx         # Dark/light theme toggle button
 │   ├── ThemeHydrator.tsx       # Server-safe theme hydration
+│   ├── PWARegister.tsx         # Service worker registration for PWA
 │   └── ui/                     # Reusable UI component library
 │       ├── Button.tsx           # 5 variants, 3 sizes, loading state
 │       ├── Input.tsx            # Label, error display, auto-id
@@ -174,7 +198,10 @@ coding_learning_platform/
 │   ├── auditLog.ts             # Firestore audit log writer & reader
 │   └── utils.ts                # cn() helper (clsx + tailwind-merge)
 ├── public/
-│   └── favicon.ico             # PulsePy browser tab icon
+│   ├── favicon.ico             # PulsePy browser tab icon
+│   ├── manifest.json           # PWA web app manifest
+│   ├── sw.js                   # Service worker (cache-first + offline)
+│   └── icons/                  # PWA app icons (192x192, 512x512)
 ├── tsconfig.json
 ├── next.config.ts
 ├── postcss.config.mjs
@@ -195,6 +222,7 @@ Users earn XP through challenges, games, and streaks. All data is stored in Fire
 | Repeat a completed challenge | +25 XP (25%) |
 | Complete a mini-game | +50 XP |
 | Perfect game score (no mistakes) | +100 XP |
+| Win a coding duel | +50 XP |
 | Daily login streak | +25 XP |
 
 **Achievements** unlock dynamically based on your stats (XP, challenges completed, streak, games played, rank).
@@ -230,6 +258,11 @@ Edit `.env.local` with your values:
 | `JWT_SECRET` | Recommended | Random string for signing JWTs (has dev fallback) |
 | `GEMINI_MODEL` | Optional | Gemini model name (default: `gemini-2.5-flash`) |
 | `ADMIN_EMAILS` | Optional | Comma-separated admin emails (e.g. `admin@example.com`) |
+| `GOOGLE_CLIENT_ID` | Optional | Google OAuth 2.0 client ID (for Google login) |
+| `GOOGLE_CLIENT_SECRET` | Optional | Google OAuth 2.0 client secret |
+| `GITHUB_CLIENT_ID` | Optional | GitHub OAuth App client ID (for GitHub login) |
+| `GITHUB_CLIENT_SECRET` | Optional | GitHub OAuth App client secret |
+| `NEXT_PUBLIC_BASE_URL` | Optional | App base URL for OAuth callbacks (default: `http://localhost:3000`) |
 
 ### 3. Run the dev server
 
@@ -282,6 +315,14 @@ npm start
 | `GET` | `/api/admin/analytics` | Platform-wide analytics, submission-level data, per-challenge success rates |
 | `GET` | `/api/admin/audit` | Recent audit log entries |
 | `GET` | `/api/admin/export` | CSV export (`?type=users\|analytics\|audit`) |
+| `GET` | `/api/auth/oauth/google` | Redirect to Google OAuth consent screen |
+| `GET` | `/api/auth/oauth/google/callback` | Google OAuth callback — create/link user + session |
+| `GET` | `/api/auth/oauth/github` | Redirect to GitHub OAuth consent screen |
+| `GET` | `/api/auth/oauth/github/callback` | GitHub OAuth callback — create/link user + session |
+| `GET/POST/PATCH` | `/api/comments` | Challenge discussion comments (get, create, like/unlike) |
+| `GET/POST/PATCH` | `/api/community/challenges` | Community-built challenges (browse, create, like) |
+| `GET/POST` | `/api/duels` | Coding duels (lobby list, create, join, submit, cancel) |
+| `GET/POST` | `/api/social/follow` | Follow/unfollow users, get follower counts |
 
 ---
 
@@ -307,6 +348,8 @@ npm start
 - Forgot-password identity verification requires matching email + username pair
 - **Audit logging** — all admin write actions (user update/delete, challenge CRUD) recorded in Firestore `audit_logs` collection
 - Account deletion requires password re-confirmation before executing
+- **OAuth 2.0** — Google and GitHub login with PKCE state cookies, automatic user linking by email
+- **PWA** — Service worker with cache-first strategy for static assets, network-first for pages
 
 ---
 
@@ -335,6 +378,7 @@ Admin users see a red **Admin** link in the navbar. The admin layout uses a dist
 
 | Date | Change |
 |------|--------|
+| 2026-02-23 | **Social & Multiplayer Sprint** — Real-time coding duels (lobby, arena, timer, +50 XP), community challenge builder, challenge discussion/comments, social features (follow/friends, share achievements), OAuth login (Google & GitHub), PWA support (manifest, service worker, offline caching), mobile-responsive IDE (collapsible sidebar, touch-friendly editor) |
 | 2026-02-22 | **Major Upgrade** — User settings (change password, delete account), code history viewer, learning paths, category/tag filter in IDE, CSV exports on admin pages, dark/light theme toggle, rate limiting on auth endpoints, audit logging, server-side challenge submissions, user profile page, navbar enhancements |
 | 2026-02-21 | Added **Testing Setup** — Jest 30 + React Testing Library, sample tests, Vercel-safe tsconfig exclude |
 | 2026-02-20 | Added **Admin Challenge Manager** — full CRUD UI + API for Firestore-backed challenges, seed endpoint, active/inactive toggle |

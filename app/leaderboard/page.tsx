@@ -20,6 +20,10 @@ import {
   Award,
   RefreshCw,
   Loader2,
+  UserPlus,
+  UserMinus,
+  Users,
+  Share2,
 } from "lucide-react";
 
 interface LeaderboardEntry {
@@ -52,6 +56,10 @@ export default function LeaderboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [myStats, setMyStats] = useState<LeaderboardEntry | null>(null);
+  const [viewMode, setViewMode] = useState<"all" | "friends">("all");
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  const [followLoading, setFollowLoading] = useState<string | null>(null);
+  const [shareToast, setShareToast] = useState(false);
 
   const fetchLeaderboard = useCallback(async (isRefresh = false) => {
     try {
@@ -88,6 +96,58 @@ export default function LeaderboardPage() {
     const interval = setInterval(() => fetchLeaderboard(true), 30000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
+
+  // Fetch following list
+  const fetchFollowing = useCallback(async () => {
+    try {
+      const headers = applyAuthHeaders();
+      const res = await fetch("/api/social/follow", { credentials: "include", headers });
+      if (res.ok) {
+        const data = await res.json();
+        setFollowingIds(new Set((data.following || []).map((f: { userId: string }) => f.userId)));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchFollowing();
+  }, [fetchFollowing]);
+
+  const toggleFollow = async (targetUserId: string) => {
+    setFollowLoading(targetUserId);
+    try {
+      const headers = { "Content-Type": "application/json", ...applyAuthHeaders() };
+      const res = await fetch("/api/social/follow", {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({ targetUserId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFollowingIds((prev) => {
+          const next = new Set(prev);
+          if (data.following) next.add(targetUserId);
+          else next.delete(targetUserId);
+          return next;
+        });
+      }
+    } catch { /* ignore */ } finally {
+      setFollowLoading(null);
+    }
+  };
+
+  const shareAchievements = () => {
+    const text = `I'm ranked #${currentUserRank} on PulsePy with ${currentUserEntry?.xp ?? 0} XP! 🚀`;
+    if (navigator.share) {
+      navigator.share({ title: "PulsePy Achievements", text, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 2000);
+      }).catch(() => {});
+    }
+  };
 
   const currentUserName = user?.fullName || user?.username || "You";
   const currentUserInitial = currentUserName.charAt(0).toUpperCase();
@@ -163,6 +223,18 @@ export default function LeaderboardPage() {
                     </div>
                     <p className="text-xs text-muted mt-0.5">Total XP</p>
                   </div>
+                  <button
+                    onClick={shareAchievements}
+                    className="relative p-2 rounded-lg text-muted hover:text-accent hover:bg-accent-muted transition-colors"
+                    title="Share achievements"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    {shareToast && (
+                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-[10px] bg-bg-elevated text-accent whitespace-nowrap">
+                        Copied!
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
             </Card>
@@ -178,10 +250,31 @@ export default function LeaderboardPage() {
               <Card className="space-y-5">
                 {/* Header with Refresh */}
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Medal className="w-5 h-5 text-accent" />
-                    Rankings
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                      <Medal className="w-5 h-5 text-accent" />
+                      Rankings
+                    </h2>
+                    <div className="flex items-center gap-1 p-1 bg-bg-elevated rounded-lg ml-3">
+                      <button
+                        onClick={() => setViewMode("all")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          viewMode === "all" ? "bg-accent text-white" : "text-muted hover:text-white"
+                        }`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setViewMode("friends")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1 ${
+                          viewMode === "friends" ? "bg-accent text-white" : "text-muted hover:text-white"
+                        }`}
+                      >
+                        <Users className="w-3 h-3" />
+                        Friends
+                      </button>
+                    </div>
+                  </div>
                   <button
                     onClick={() => fetchLeaderboard(true)}
                     disabled={refreshing}
@@ -229,17 +322,21 @@ export default function LeaderboardPage() {
                 {!loading && !error && entries.length > 0 && (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-[60px_1fr_80px_80px_80px] gap-2 px-4 py-2 text-xs font-medium text-muted uppercase tracking-wider">
+                    <div className="grid grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 px-4 py-2 text-xs font-medium text-muted uppercase tracking-wider">
                       <span>Rank</span>
                       <span>Coder</span>
                       <span className="text-center">XP</span>
                       <span className="text-center">Solved</span>
                       <span className="text-center">Streak</span>
+                      <span></span>
                     </div>
 
                     {/* Rows */}
                     <div className="space-y-1.5">
-                      {entries.map((entry, i) => {
+                      {(viewMode === "friends"
+                        ? entries.filter((e) => followingIds.has(e.uid) || e.uid === user?.uid)
+                        : entries
+                      ).map((entry, i) => {
                         const medal = rankMedals[entry.rank];
                         const isTopThree = entry.rank <= 3;
                         const isCurrentUser = entry.uid === user?.uid;
@@ -250,7 +347,7 @@ export default function LeaderboardPage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.05 * i }}
-                            className={`grid grid-cols-[60px_1fr_80px_80px_80px] gap-2 items-center px-4 py-3 rounded-xl transition-colors ${
+                            className={`grid grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 items-center px-4 py-3 rounded-xl transition-colors ${
                               isCurrentUser
                                 ? "bg-accent-muted/30 border border-accent/20"
                                 : isTopThree
@@ -313,6 +410,28 @@ export default function LeaderboardPage() {
                               <Flame className="w-3 h-3 text-accent-hot" />
                               <span className="text-sm font-mono">{entry.streak}d</span>
                             </div>
+
+                            {/* Follow */}
+                            <div className="flex items-center justify-center">
+                              {!isCurrentUser && (
+                                <button
+                                  onClick={() => toggleFollow(entry.uid)}
+                                  disabled={followLoading === entry.uid}
+                                  className={`p-1.5 rounded-lg transition-colors ${
+                                    followingIds.has(entry.uid)
+                                      ? "text-accent hover:text-danger hover:bg-danger-muted"
+                                      : "text-muted hover:text-accent hover:bg-accent-muted"
+                                  }`}
+                                  title={followingIds.has(entry.uid) ? "Unfollow" : "Follow"}
+                                >
+                                  {followingIds.has(entry.uid) ? (
+                                    <UserMinus className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <UserPlus className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </motion.div>
                         );
                       })}
@@ -321,7 +440,7 @@ export default function LeaderboardPage() {
                     {/* Current User (if not in top entries) */}
                     {!isInLeaderboard && user && (
                       <div className="pt-4 border-t border-border">
-                        <div className="grid grid-cols-[60px_1fr_80px_80px_80px] gap-2 items-center px-4 py-3 rounded-xl bg-accent-muted/30 border border-accent/20">
+                        <div className="grid grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 items-center px-4 py-3 rounded-xl bg-accent-muted/30 border border-accent/20">
                           <div className="flex items-center justify-center">
                             <span className="text-sm font-mono text-accent-light">#{currentUserRank}</span>
                           </div>
@@ -343,6 +462,7 @@ export default function LeaderboardPage() {
                             <Flame className="w-3 h-3 text-accent-hot" />
                             <span className="text-sm font-mono">{currentUserEntry?.streak ?? 0}d</span>
                           </div>
+                          <div></div>
                         </div>
                       </div>
                     )}

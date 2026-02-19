@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { ThemeHydrator } from "@/components/ThemeHydrator";
+import { PWARegister } from "@/components/PWARegister";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -53,6 +54,20 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/apple-icon.png",
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PulsePy",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6366f1",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -64,6 +79,7 @@ export default function RootLayout({
     <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`} data-theme="dark">
       <body className="antialiased">
         <ThemeHydrator />
+        <PWARegister />
         <Navbar />
         <main className="pt-16">{children}</main>
       </body>

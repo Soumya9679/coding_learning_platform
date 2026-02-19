@@ -20,6 +20,8 @@ import {
   Settings,
   History,
   Route,
+  Users,
+  Swords,
 } from "lucide-react";
 import { applyAuthHeaders } from "@/lib/session";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -27,8 +29,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 const navLinks = [
   { href: "/ide", label: "IDE", icon: Terminal },
   { href: "/paths", label: "Paths", icon: Route },
+  { href: "/community", label: "Community", icon: Users },
+  { href: "/duels", label: "Duels", icon: Swords },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/gamified", label: "Game Lab", icon: Gamepad2 },
+  { href: "/gamified", label: "Games", icon: Gamepad2 },
   { href: "/history", label: "History", icon: History },
 ];
 
