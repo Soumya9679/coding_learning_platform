@@ -4,7 +4,7 @@ import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/ui"
 
 const stats = [
   { value: "10+", label: "Coding Challenges", icon: Trophy },
-  { value: "3", label: "Mini-Games", icon: Gamepad2 },
+  { value: "5", label: "Mini-Games", icon: Gamepad2 },
   { value: "AI", label: "Powered Mentor", icon: Brain },
   { value: "∞", label: "Practice Sessions", icon: Zap },
 ];
@@ -23,7 +23,7 @@ const features = [
   {
     icon: Gamepad2,
     title: "Game Lab",
-    desc: "Three cinematic mini-games that turn Python drills into engaging, score-driven experiences.",
+    desc: "Five unique mini-games — type code, arrange programs, race an AI, match concepts, and blast falling expressions. All teaching Python.",
   },
   {
     icon: Brain,
