@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Gauge, Lightbulb, ArrowRight, RotateCcw, Flame, Zap, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -184,6 +185,7 @@ export default function Game3Page() {
   const speedPct = ((Math.max(60, Math.min(220, state.speed)) - 60) / 160) * 100;
 
   return (
+    <AuthGuard>
     <div className="min-h-screen relative overflow-hidden">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-radial from-success/8 via-transparent to-transparent pointer-events-none" />
@@ -351,5 +353,6 @@ export default function Game3Page() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

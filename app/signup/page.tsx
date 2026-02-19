@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { persistSessionToken } from "@/lib/session";
+import { useAuthStore } from "@/lib/store";
 import { Button, Input, StatusMessage } from "@/components/ui";
 import { UserPlus, Zap } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
+  const hydrate = useAuthStore((s) => s.hydrate);
   const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "Create your learner profile.", type: "info" });
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +49,7 @@ export default function SignupPage() {
       if (!res.ok) throw new Error(data.error || data.errors?.[0] || "Unexpected error.");
 
       setStatus({ message: "Account ready! Redirecting...", type: "success" });
+      await hydrate();
       router.push(data.redirectTo || "/");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Unexpected error";

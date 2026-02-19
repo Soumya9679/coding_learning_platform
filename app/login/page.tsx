@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { persistSessionToken, clearSessionToken } from "@/lib/session";
+import { useAuthStore } from "@/lib/store";
 import { Button, Input, StatusMessage } from "@/components/ui";
 import { LogIn, Zap } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const hydrate = useAuthStore((s) => s.hydrate);
   const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "Enter your credentials to continue.", type: "info" });
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +46,7 @@ export default function LoginPage() {
       }
 
       setStatus({ message: "Welcome back! Redirecting...", type: "success" });
+      await hydrate();
       router.push(data.redirectTo || "/");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Unexpected error";

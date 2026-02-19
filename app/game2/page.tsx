@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Puzzle, Shuffle, Eye, Clock, Move } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +122,7 @@ export default function Game2Page() {
   }, []);
 
   return (
+    <AuthGuard>
     <div className="min-h-screen relative overflow-hidden">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-radial from-accent/8 via-transparent to-transparent pointer-events-none" />
@@ -234,5 +236,6 @@ export default function Game2Page() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AnimatedSection, StaggerContainer, StaggerItem, Badge, Button } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Gamepad2, Bug, Puzzle, Gauge, Play, ArrowRight, Sparkles, Zap, Users, Star } from "lucide-react";
 
 const games = [
@@ -43,6 +44,7 @@ const whyItems = [
 
 export default function GamifiedPage() {
   return (
+    <AuthGuard>
     <div className="min-h-screen overflow-hidden">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-accent/8 via-transparent to-transparent pointer-events-none" />
@@ -193,5 +195,6 @@ export default function GamifiedPage() {
         </div>
       </section>
     </div>
+    </AuthGuard>
   );
 }

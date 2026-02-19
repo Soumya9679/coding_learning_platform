@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { applyAuthHeaders } from "@/lib/session";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { CheckCircle2, XCircle, AlertTriangle, Play, Code2, Trophy } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -223,6 +224,7 @@ function ChallengeCard({ challenge, index }: { challenge: Challenge; index: numb
 
 export default function ChallengesPage() {
   return (
+    <AuthGuard>
     <div className="min-h-screen">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8 relative">
@@ -247,5 +249,6 @@ export default function ChallengesPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

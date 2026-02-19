@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Button, Badge, Card } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Play, Lightbulb, Terminal, CheckCircle2, XCircle, BookOpen, ListChecks } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
@@ -198,6 +199,7 @@ def pulse_run(source: str):
   const StatusIcon = st.icon;
 
   return (
+    <AuthGuard>
     <div className="min-h-screen">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
 
@@ -332,5 +334,6 @@ def pulse_run(source: str):
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

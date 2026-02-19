@@ -69,28 +69,30 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-accent-muted text-accent-light"
-                      : "text-muted hover:text-white hover:bg-white/5"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
+          {/* Desktop Nav — only visible when authenticated */}
+          {isAuth && (
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "bg-accent-muted text-accent-light"
+                        : "text-muted hover:text-white hover:bg-white/5"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* Auth Controls */}
           <div className="hidden md:flex items-center gap-3">
@@ -98,9 +100,9 @@ export function Navbar() {
               <div className="w-20 h-8 bg-bg-elevated rounded-lg animate-pulse" />
             ) : isAuth ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-light">
-                  {user?.username}
-                </span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-sm font-bold text-white uppercase shadow-glow">
+                  {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
+                </div>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted hover:text-danger rounded-lg hover:bg-danger-muted transition-all"
@@ -148,7 +150,7 @@ export function Navbar() {
             className="md:hidden bg-bg-card/95 backdrop-blur-xl border-b border-border overflow-hidden"
           >
             <div className="px-4 py-4 space-y-2">
-              {navLinks.map((link) => {
+              {isAuth && navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
                 return (
@@ -167,15 +169,23 @@ export function Navbar() {
                   </Link>
                 );
               })}
-              <div className="pt-3 border-t border-border">
+              <div className={cn(isAuth && "pt-3 border-t border-border")}>
                 {isAuth ? (
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-3 w-full text-sm text-danger hover:bg-danger-muted rounded-xl transition-all"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 px-4 py-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-sm font-bold text-white uppercase shadow-glow">
+                        {user?.fullName?.charAt(0) || user?.username?.charAt(0) || "U"}
+                      </div>
+                      <span className="text-sm text-muted">{user?.username}</span>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-4 py-3 w-full text-sm text-danger hover:bg-danger-muted rounded-xl transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <Link

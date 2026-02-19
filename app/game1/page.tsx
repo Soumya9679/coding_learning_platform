@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button, Badge, Card, AnimatedSection } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Bug, Heart, RotateCcw, ArrowRight, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +86,7 @@ export default function Game1Page() {
   const pct = ((current + 1) / questions.length) * 100;
 
   return (
+    <AuthGuard>
     <div className="min-h-screen relative overflow-hidden">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-gradient-radial from-danger/8 via-transparent to-transparent pointer-events-none" />
@@ -188,5 +190,6 @@ export default function Game1Page() {
         </motion.div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
