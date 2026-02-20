@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
+import crypto from "crypto";
 import {
   isValidEmail,
   isStrongPassword,
@@ -86,6 +87,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       streak: 0,
       completedChallenges: [],
       lastActiveDate: "",
+      emailVerified: false,
+      verificationToken: crypto.randomBytes(32).toString("hex"),
+      verificationTokenExpiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };

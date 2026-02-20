@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 // POST /api/social/follow — follow or unfollow a user { targetUserId }
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -9,6 +10,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = authenticateFromRequest(request);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`follow:${session.uid}:${ip}`, { max: 20, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many follow requests. Please wait." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
     }
 
     const { targetUserId } = await request.json();

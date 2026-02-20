@@ -16,8 +16,11 @@ export default function ProfileError({
         <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
         <h2 className="text-xl font-bold text-primary">Profile Error</h2>
         <p className="text-secondary text-sm">
-          {error.message || "Failed to load your profile."}
+          Failed to load your profile.
         </p>
+        {process.env.NODE_ENV === "development" && error.message && (
+          <p className="text-xs text-muted font-mono break-all">{error.message}</p>
+        )}
         <Button onClick={reset} className="gap-2">
           <RotateCcw className="w-4 h-4" /> Reload Profile
         </Button>

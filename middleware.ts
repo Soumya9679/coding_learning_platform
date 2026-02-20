@@ -74,7 +74,7 @@ export function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("pulsepy_session");
     if (!sessionCookie?.value) {
       const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
+      loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
       return NextResponse.redirect(loginUrl);
     }
   }

@@ -7,6 +7,7 @@ import { Card, Badge, Button, UserAvatar, toast } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
+import type { Achievement, ProfileSubmission, ProfileData } from "@/lib/types";
 import {
   Trophy,
   Flame,
@@ -29,41 +30,6 @@ import {
   User,
   Settings,
 } from "lucide-react";
-
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  unlocked: boolean;
-  color: string;
-}
-
-interface Submission {
-  id: string;
-  challengeId: string;
-  passed: boolean;
-  xpAwarded: number;
-  isRepeat: boolean;
-  createdAt: string;
-}
-
-interface ProfileData {
-  uid: string;
-  fullName: string;
-  username: string;
-  email: string;
-  xp: number;
-  rank: number;
-  challengesCompleted: number;
-  completedChallenges: string[];
-  gamesPlayed: number;
-  streak: number;
-  lastActiveDate: string;
-  createdAt: string;
-  recentSubmissions: Submission[];
-  achievements: Achievement[];
-}
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap,

@@ -89,7 +89,7 @@ export default function RootLayout({
         <PWARegister />
         <Navbar />
         <ToastProvider />
-        <main id="main-content" className="pt-16">{children}</main>
+        <main id="main-content" tabIndex={-1} className="pt-16">{children}</main>
       </body>
     </html>
   );

@@ -489,7 +489,7 @@ function PipelinePuzzleGame() {
     <div className="min-h-screen bg-[#0a0a14] text-white p-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" aria-live="polite" role="status">
           <div className="flex items-center gap-3">
             <Layers className="w-5 h-5 text-cyan-400" />
             <span className="text-sm text-gray-400">

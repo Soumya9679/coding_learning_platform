@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Card, Badge, LeaderboardSkeleton, Pagination } from "@/components/ui";
+import { Card, Badge, LeaderboardSkeleton, Pagination, EmptyState } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
+import type { LeaderboardEntry } from "@/lib/types";
 import {
   Trophy,
   Medal,
@@ -26,18 +27,6 @@ import {
   Share2,
   Search,
 } from "lucide-react";
-
-interface LeaderboardEntry {
-  uid: string;
-  rank: number;
-  name: string;
-  username: string;
-  avatar: string;
-  xp: number;
-  challengesCompleted: number;
-  gamesPlayed: number;
-  streak: number;
-}
 
 const achievements = [
   { icon: Zap, title: "First Run", desc: "Run your first code in the IDE", threshold: (u: LeaderboardEntry | null) => (u?.xp ?? 0) > 0, color: "text-warning" },
@@ -101,11 +90,32 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchLeaderboard(false, 1, searchQuery);
-    // Auto-refresh every 30 seconds (only if tab is visible)
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchLeaderboard(true, page, searchQuery);
-    }, 30000);
-    return () => clearInterval(interval);
+
+    // Pause/resume polling on tab visibility
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (interval) return;
+      interval = setInterval(() => {
+        fetchLeaderboard(true, page, searchQuery);
+      }, 30000);
+    };
+
+    const stopPolling = () => {
+      if (interval) { clearInterval(interval); interval = null; }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) stopPolling();
+      else startPolling();
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [fetchLeaderboard, searchQuery]);
 
   // Fetch following list
@@ -117,7 +127,7 @@ export default function LeaderboardPage() {
         const data = await res.json();
         setFollowingIds(new Set((data.following || []).map((f: { userId: string }) => f.userId)));
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.error("Failed to fetch following:", e); }
   }, []);
 
   useEffect(() => {
@@ -143,7 +153,7 @@ export default function LeaderboardPage() {
           return next;
         });
       }
-    } catch { /* ignore */ } finally {
+    } catch (e) { console.error("Follow toggle failed:", e); } finally {
       setFollowLoading(null);
     }
   };
@@ -331,10 +341,11 @@ export default function LeaderboardPage() {
 
                 {/* Empty State */}
                 {!loading && !error && entries.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-16 gap-3">
-                    <Trophy className="w-10 h-10 text-muted" />
-                    <p className="text-sm text-muted">No rankings yet. Be the first to earn XP!</p>
-                  </div>
+                  <EmptyState
+                    icon={<Trophy className="w-8 h-8" />}
+                    title="No rankings yet"
+                    description="Be the first to earn XP! Head to the IDE and solve challenges."
+                  />
                 )}
 
                 {/* Table */}

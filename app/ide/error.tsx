@@ -16,8 +16,11 @@ export default function IDEError({
         <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
         <h2 className="text-xl font-bold text-primary">IDE Error</h2>
         <p className="text-secondary text-sm">
-          {error.message || "The code editor encountered an unexpected error."}
+          The code editor encountered an unexpected error.
         </p>
+        {process.env.NODE_ENV === "development" && error.message && (
+          <p className="text-xs text-muted font-mono break-all">{error.message}</p>
+        )}
         <Button onClick={reset} className="gap-2">
           <RotateCcw className="w-4 h-4" /> Reload Editor
         </Button>

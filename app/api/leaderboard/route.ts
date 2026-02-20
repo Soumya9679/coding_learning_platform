@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`leaderboard:${ip}`, { max: 30, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
+
     const url = new URL(request.url);
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
     const pageSize = Math.min(50, Math.max(1, parseInt(url.searchParams.get("pageSize") || "25")));

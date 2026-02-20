@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
-import { authenticateFromRequest } from "@/lib/auth";
+import { authenticateFromRequest, sanitizeText } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 // GET /api/community/challenges — list community challenges
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -116,14 +117,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const challenge = {
-      title: title.trim(),
-      description: description.trim(),
-      tag: tag?.trim() || "General",
+      title: sanitizeText(title, 100),
+      description: sanitizeText(description, 2000),
+      tag: sanitizeText(tag || "General", 50),
       difficulty: Math.min(Math.max(Number(difficulty) || 1, 1), 3),
       starterCode: starterCode.trim(),
       expectedOutput: expectedOutput.trim(),
-      criteria: criteria?.trim() || "",
-      steps: Array.isArray(steps) ? steps.filter((s: string) => s?.trim()).map((s: string) => s.trim()) : [],
+      criteria: sanitizeText(criteria || "", 1000),
+      steps: Array.isArray(steps) ? steps.filter((s: string) => s?.trim()).map((s: string) => sanitizeText(s, 500)) : [],
       authorId: session.uid,
       authorUsername: session.username,
       status: "approved", // Auto-approve for now; can add moderation later

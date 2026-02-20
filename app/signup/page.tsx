@@ -39,9 +39,9 @@ export default function SignupPage() {
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
 
   const fieldErrors = {
-    fullName: touched.fullName && fullName.trim().length < 2 ? "Name must be at least 2 characters" : undefined,
+    fullName: touched.fullName && fullName.length > 0 && fullName.trim().length < 2 ? "Name must be at least 2 characters" : undefined,
     email: touched.email && email.length > 0 && !emailValid ? "Enter a valid email address" : undefined,
-    username: touched.username && username.trim().length < 3 ? "Username must be at least 3 characters" : undefined,
+    username: touched.username && username.length > 0 && username.trim().length < 3 ? "Username must be at least 3 characters" : undefined,
     confirmPassword: touched.confirmPassword && confirmPassword.length > 0 && !passwordsMatch ? "Passwords do not match" : undefined,
   };
 

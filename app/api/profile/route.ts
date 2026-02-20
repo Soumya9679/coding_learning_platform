@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateFromRequest } from "@/lib/auth";
+import { authenticateFromRequest, sanitizeText } from "@/lib/auth";
 import { db } from "@/lib/firebase";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 /**
  * GET /api/profile — get full profile + stats for the current user.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`profile:${ip}`, { max: 30, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
+
     const user = authenticateFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
@@ -99,7 +109,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     await db.collection("users").doc(user.uid).update({
-      fullName: fullName.trim(),
+      fullName: sanitizeText(fullName, 100),
     });
 
     return NextResponse.json({ message: "Profile updated.", fullName: fullName.trim() });

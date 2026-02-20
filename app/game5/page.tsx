@@ -494,7 +494,7 @@ function CodeCascadeGame() {
   return (
     <div className="min-h-screen bg-[#0a0a14] text-white flex flex-col overflow-hidden" onClick={() => inputRef.current?.focus()}>
       {/* HUD */}
-      <div className="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/5 shrink-0 z-10">
+      <div className="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/5 shrink-0 z-10" aria-live="polite" role="status">
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-400 flex items-center gap-1">
             <Star className="w-3.5 h-3.5 text-purple-400" /> <span className="font-bold text-purple-400">{score}</span>

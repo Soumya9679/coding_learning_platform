@@ -16,8 +16,11 @@ export default function AdminError({
         <AlertTriangle className="w-12 h-12 text-warning mx-auto" />
         <h2 className="text-xl font-bold text-primary">Admin Panel Error</h2>
         <p className="text-secondary text-sm">
-          {error.message || "An error occurred in the admin panel."}
+          An error occurred in the admin panel.
         </p>
+        {process.env.NODE_ENV === "development" && error.message && (
+          <p className="text-xs text-muted font-mono break-all">{error.message}</p>
+        )}
         <Button onClick={reset} className="gap-2">
           <RotateCcw className="w-4 h-4" /> Retry
         </Button>

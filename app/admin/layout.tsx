@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /* noindex — prevent search engines from indexing admin pages */
 if (typeof document !== "undefined") {
-  if (!document.querySelector('meta[name="robots"][content="noindex"]')) {
+  if (!document.querySelector('meta[name="robots"][content="noindex, nofollow"]')) {
     const meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex, nofollow";

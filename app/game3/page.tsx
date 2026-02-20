@@ -312,7 +312,7 @@ export default function Game3Page() {
                 <h1 className="text-xl font-bold">Velocity Trials</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs" aria-live="polite" role="status">
               <Badge variant="neutral"><Timer className="w-3 h-3 mr-1" />{fmt(elapsed)}</Badge>
               <Badge variant={state.streak >= 3 ? "success" : "neutral"}><Flame className="w-3 h-3 mr-1" />{state.streak}x</Badge>
               <Badge variant={state.penalties > 0 ? "danger" : "neutral"}>{state.penalties} penalty</Badge>

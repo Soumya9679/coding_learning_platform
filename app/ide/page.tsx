@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button, Badge, Card, toast } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { applyAuthHeaders } from "@/lib/session";
+import { runPythonInWorker } from "@/hooks/usePyodide";
 import { 
   Play, 
   Lightbulb, 
@@ -95,11 +96,6 @@ interface Comment {
   likes?: string[];
 }
 
-interface PyodideRuntime {
-  pyodide: unknown;
-  runner: (code: string) => { toJs: (opts: { dict_converter: typeof Object.fromEntries }) => { stdout: string; stderr: string; error: string }; destroy: () => void };
-}
-
 export default function IdePage() {
   const [challenges, setChallenges] = useState<ChallengeData[]>(FALLBACK_CHALLENGES);
   const [challengesLoading, setChallengesLoading] = useState(true);
@@ -127,8 +123,8 @@ export default function IdePage() {
             setSelectedChallengeId(data.challenges[0].id);
           }
         }
-      } catch {
-        // silently fall back to default challenges
+      } catch (e) {
+        console.error("Failed to load challenges, using defaults:", e);
       } finally {
         setChallengesLoading(false);
       }
@@ -151,9 +147,11 @@ export default function IdePage() {
   const [hintLoading, setHintLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
-  const pyodideRef = useRef<PyodideRuntime | null>(null);
+  const pyodideReady = useRef(false);
   const lastErrorRef = useRef("");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const runCodeRef = useRef<() => void>(() => {});
+  const requestHintRef = useRef<() => void>(() => {});
 
   // Timer effect
   useEffect(() => {
@@ -201,75 +199,33 @@ export default function IdePage() {
     return () => clearTimeout(timeout);
   }, [code, selectedChallengeId, challenge.starterCode]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — use refs to avoid stale closures & re-registering on every keystroke
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        runCode();
+        runCodeRef.current();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "h") {
         e.preventDefault();
-        requestHint();
+        requestHintRef.current();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [code, output]);
+  }, []);
 
+  // Pre-warm the Pyodide Web Worker so first run is faster
   useEffect(() => {
-    let cancelled = false;
-    async function loadPyodide() {
-      try {
-        if (!(window as unknown as Record<string, unknown>).loadPyodide) {
-          await new Promise<void>((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
-            script.onload = () => resolve();
-            script.onerror = reject;
-            document.head.appendChild(script);
-          });
-        }
-        const load = (window as unknown as Record<string, unknown>).loadPyodide as (opts: { indexURL: string }) => Promise<unknown>;
-        const pyodide: Record<string, unknown> = await load({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/" }) as Record<string, unknown>;
-        const runPythonAsync = pyodide.runPythonAsync as (code: string) => Promise<unknown>;
-        await runPythonAsync(`
-from io import StringIO
-import sys, traceback
-
-def pulse_run(source: str):
-    stdout = sys.stdout
-    stderr = sys.stderr
-    out = StringIO()
-    err = StringIO()
-    result = {"stdout": "", "stderr": "", "error": ""}
-    sys.stdout = out
-    sys.stderr = err
-    try:
-        exec(source, {})
-    except Exception as exc:
-        result["error"] = f"{exc.__class__.__name__}: {exc}"
-        err.write(traceback.format_exc())
-    finally:
-        result["stdout"] = out.getvalue()
-        result["stderr"] = err.getvalue()
-        sys.stdout = stdout
-        sys.stderr = stderr
-    return result
-`);
-        if (!cancelled) {
-          const globals = pyodide.globals as { get: (name: string) => unknown };
-          pyodideRef.current = {
-            pyodide,
-            runner: globals.get("pulse_run") as PyodideRuntime["runner"],
-          };
-        }
-      } catch (error) {
-        console.error("Pyodide failed to initialize", error);
+    const warmup = new Worker("/pyodide-worker.js");
+    warmup.onmessage = (e) => {
+      if (e.data.type === "ready") {
+        pyodideReady.current = true;
+        warmup.terminate();
       }
-    }
-    loadPyodide();
-    return () => { cancelled = true; };
+    };
+    warmup.postMessage({ type: "init" });
+    return () => warmup.terminate();
   }, []);
 
   const formatTime = (seconds: number) => {
@@ -289,21 +245,11 @@ def pulse_run(source: str):
     }
 
     setRunning(true);
-    setFeedback("Running codeâ€¦");
+    setFeedback("Running code…");
     setOutputStatus("info");
 
-    const runtime = pyodideRef.current;
-    if (!runtime) {
-      setFeedback("Python runtime is still loading. Please try again in a moment.");
-      setOutputStatus("info");
-      setRunning(false);
-      return;
-    }
-
     try {
-      const proxy = runtime.runner(code);
-      const result = proxy.toJs({ dict_converter: Object.fromEntries });
-      proxy.destroy();
+      const result = await runPythonInWorker(code, 10_000);
 
       if (result.error) {
         setOutput(result.stdout || result.stderr);
@@ -412,6 +358,10 @@ def pulse_run(source: str):
     }
   }, [code, output, challenge]);
 
+  // Keep refs in sync so keyboard shortcuts always call the latest version
+  runCodeRef.current = runCode;
+  requestHintRef.current = requestHint;
+
   const resetChallenge = () => {
     setCode(challenge.starterCode);
     setOutput("Run your code to see output here.");
@@ -436,7 +386,7 @@ def pulse_run(source: str):
         const data = await res.json();
         setComments(data.comments || []);
       }
-    } catch { /* ignore */ } finally {
+    } catch (e) { console.error("Failed to load comments:", e); } finally {
       setCommentsLoading(false);
     }
   }, [challenge.id]);
@@ -474,7 +424,7 @@ def pulse_run(source: str):
         body: JSON.stringify({ commentId }),
       });
       if (res.ok) fetchComments();
-    } catch { /* ignore */ }
+    } catch (e) { console.error("Comment like failed:", e); }
   };
 
   // Load comments when discussion opens

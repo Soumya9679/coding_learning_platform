@@ -8,6 +8,8 @@ import { applyAuthHeaders } from "@/lib/session";
 import { AnimatedSection, toast } from "@/components/ui";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { runPythonInWorker } from "@/hooks/usePyodide";
+import type { LobbyDuel, MyDuel, ActiveDuel } from "@/lib/types";
 import {
   Swords,
   Plus,
@@ -27,53 +29,6 @@ import {
 } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
-
-interface LobbyDuel {
-  id: string;
-  challengeTitle: string;
-  difficulty: number;
-  creatorUsername: string;
-  timeLimit: number;
-  createdAt: string;
-}
-
-interface MyDuel {
-  id: string;
-  challengeTitle: string;
-  difficulty: number;
-  creatorUsername: string;
-  opponentUsername: string | null;
-  status: string;
-  winnerId: string | null;
-  winnerUsername: string | null;
-  timeLimit: number;
-  createdAt: string;
-}
-
-interface ActiveDuel {
-  id: string;
-  challengeTitle: string;
-  challengeDescription: string;
-  expectedOutput: string;
-  starterCode: string;
-  difficulty: number;
-  creatorId: string;
-  creatorUsername: string;
-  opponentId: string | null;
-  opponentUsername: string | null;
-  status: string;
-  timeLimit: number;
-  creatorPassed: boolean;
-  opponentPassed: boolean;
-  creatorFinishedAt: string | null;
-  opponentFinishedAt: string | null;
-  winnerId: string | null;
-  winnerUsername: string | null;
-  startedAt: string | null;
-  finishedAt: string | null;
-  myCode: string;
-  opponentCode: string;
-}
 
 const diffColors: Record<number, string> = {
   1: "text-emerald-400",
@@ -107,7 +62,6 @@ export default function DuelsPage() {
   const [running, setRunning] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [pyodide, setPyodide] = useState<unknown>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -161,22 +115,6 @@ export default function DuelsPage() {
       console.error("Failed to fetch duel:", e);
     }
   }, []);
-
-  // Load Pyodide
-  const loadPyodide = useCallback(async () => {
-    if (pyodide) return pyodide;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const py = await (window as any).loadPyodide({
-        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
-      });
-      setPyodide(py);
-      return py;
-    } catch (e) {
-      console.error("Pyodide load error:", e);
-      return null;
-    }
-  }, [pyodide]);
 
   // Create duel
   const handleCreate = async () => {
@@ -263,13 +201,6 @@ export default function DuelsPage() {
         setCode(activeDuel.myCode || activeDuel.starterCode);
       }
 
-      // Load Pyodide script
-      if (!document.querySelector('script[src*="pyodide"]')) {
-        const s = document.createElement("script");
-        s.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
-        document.head.appendChild(s);
-      }
-
       const updateTimer = () => {
         const elapsed = Date.now() - started;
         const remaining = Math.max(0, Math.ceil((limit - elapsed) / 1000));
@@ -289,25 +220,19 @@ export default function DuelsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDuel?.status, activeDuel?.startedAt, submitted]);
 
-  // Run code locally
+  // Run code in Web Worker with timeout
   const handleRun = async () => {
     setRunning(true);
     setOutput("");
     try {
-      const py = await loadPyodide();
-      if (!py) {
-        setOutput("Error: Failed to load Python runtime");
-        setRunning(false);
-        return;
+      const result = await runPythonInWorker(code, 10_000);
+      if (result.error) {
+        setOutput(`Error: ${result.error}\n`);
+      } else {
+        setOutput(result.stdout || "(no output)");
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (py as any).setStdout({ batched: (text: string) => setOutput((prev) => prev + text + "\n") });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (py as any).setStderr({ batched: (text: string) => setOutput((prev) => prev + "Error: " + text + "\n") });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (py as any).runPythonAsync(code);
     } catch (err) {
-      setOutput((prev) => prev + `Error: ${err}\n`);
+      setOutput(`Error: ${err}\n`);
     } finally {
       setRunning(false);
     }

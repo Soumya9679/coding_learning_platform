@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
-import { motion, AnimatePresence } from "framer-motion";
+import { LazyMotion, domAnimation, m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   Code2,
@@ -73,8 +73,15 @@ export function Navbar() {
         setUserMenuOpen(false);
       }
     }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setUserMenuOpen(false);
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [userMenuOpen]);
 
   const handleLogout = async () => {
@@ -83,6 +90,7 @@ export function Navbar() {
   };
 
   return (
+    <LazyMotion features={domAnimation}>
     <nav
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
@@ -138,6 +146,8 @@ export function Navbar() {
               <div ref={userMenuRef} className="relative flex items-center gap-2">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
                   className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all"
                 >
                   <UserAvatar email={user?.email} name={user?.fullName || user?.username} size="sm" className="rounded-full" />
@@ -148,12 +158,14 @@ export function Navbar() {
                 {/* User dropdown menu */}
                 <AnimatePresence>
                   {userMenuOpen && (
-                    <motion.div
+                    <m.div
                       initial={{ opacity: 0, y: 8, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.96 }}
                       transition={{ duration: 0.15 }}
                       className="absolute right-0 top-full mt-2 w-48 bg-bg-card/95 backdrop-blur-xl border border-border rounded-xl shadow-card overflow-hidden z-50"
+                      role="menu"
+                      aria-label="User menu"
                     >
                       <div className="px-3 py-2 border-b border-border">
                         <p className="text-sm font-semibold truncate">{user?.fullName || user?.username}</p>
@@ -165,6 +177,7 @@ export function Navbar() {
                           <Link
                             key={link.href}
                             href={link.href}
+                            role="menuitem"
                             className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted hover:text-white hover:bg-white/5 transition-all"
                           >
                             <Icon className="w-4 h-4" />
@@ -175,13 +188,14 @@ export function Navbar() {
                       <div className="border-t border-border">
                         <button
                           onClick={handleLogout}
+                          role="menuitem"
                           className="flex items-center gap-2.5 px-3 py-2.5 w-full text-sm text-danger hover:bg-danger-muted transition-all"
                         >
                           <LogOut className="w-4 h-4" />
                           Logout
                         </button>
                       </div>
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -217,7 +231,7 @@ export function Navbar() {
       {/* Mobile Menu */}
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -304,9 +318,10 @@ export function Navbar() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </nav>
+    </LazyMotion>
   );
 }

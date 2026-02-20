@@ -305,7 +305,7 @@ export default function Game1Page() {
                 <h1 className="text-xl font-bold">Syntax Sniper</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs" aria-live="polite" role="status">
               <Badge variant="accent"><Zap className="w-3 h-3 mr-1" />{state.score} pts</Badge>
               <Badge variant={state.streak >= 3 ? "success" : "neutral"}><Flame className="w-3 h-3 mr-1" />{state.streak}x</Badge>
               <Badge variant={timeLeft <= 15 ? "danger" : "neutral"}><Timer className="w-3 h-3 mr-1" />{fmt(timeLeft)}</Badge>

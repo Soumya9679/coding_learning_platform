@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
-import { authenticateFromRequest } from "@/lib/auth";
+import { authenticateFromRequest, sanitizeText } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 // GET /api/comments?challengeId=xxx — fetch comments for a challenge
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       userId: session.uid,
       username: session.username,
       avatar: session.fullName?.charAt(0)?.toUpperCase() || "U",
-      text: text.trim(),
+      text: sanitizeText(text, 2000),
       likes: [],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };

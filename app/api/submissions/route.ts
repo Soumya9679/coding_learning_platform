@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 /**
  * GET /api/submissions — list the current user's past submissions with code.
@@ -11,6 +12,15 @@ import { db } from "@/lib/firebase";
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`submissions:${ip}`, { max: 30, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
+
     const user = authenticateFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });

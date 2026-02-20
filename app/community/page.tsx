@@ -6,6 +6,7 @@ import { Card, Badge, Button, CommunitySkeleton, Pagination } from "@/components
 import { AuthGuard } from "@/components/AuthGuard";
 import { applyAuthHeaders } from "@/lib/session";
 import { useAuthStore } from "@/lib/store";
+import type { CommunityChallenge } from "@/lib/types";
 import {
   Plus,
   Heart,
@@ -20,24 +21,6 @@ import {
   Loader2,
   Search,
 } from "lucide-react";
-
-interface CommunityChallenge {
-  id: string;
-  title: string;
-  description: string;
-  tag: string;
-  difficulty: number;
-  starterCode: string;
-  expectedOutput: string;
-  criteria: string;
-  steps: string[];
-  authorId: string;
-  authorUsername: string;
-  status: string;
-  plays: number;
-  likes: number;
-  createdAt: string;
-}
 
 const TAGS = ["General", "Strings", "Loops", "Math", "Lists", "Recursion", "Sorting", "OOP", "Files", "Data"];
 const DIFF_LABELS: Record<number, string> = { 1: "Easy", 2: "Medium", 3: "Hard" };
@@ -84,7 +67,7 @@ export default function CommunityPage() {
         setTotalPages(data.totalPages || 1);
         setPage(data.page || 1);
       }
-    } catch { /* ignore */ } finally {
+    } catch (e) { console.error("Failed to load community challenges:", e); } finally {
       setLoading(false);
     }
   }, [filter, tagFilter]);
@@ -136,7 +119,7 @@ export default function CommunityPage() {
         body: JSON.stringify({ challengeId }),
       });
       fetchChallenges();
-    } catch { /* ignore */ }
+    } catch (e) { console.error("Like toggle failed:", e); }
   };
 
   const playChallenge = (c: CommunityChallenge) => {
