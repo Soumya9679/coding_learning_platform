@@ -10,6 +10,7 @@ interface User {
 interface AuthState {
   user: User | null;
   isAuth: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
@@ -20,6 +21,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuth: false,
+  isAdmin: false,
   isLoading: true,
 
   setUser: (user) => set({ user, isAuth: !!user, isLoading: false }),
@@ -32,7 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (typeof window !== "undefined") {
       localStorage.removeItem("pulsepy_session_token");
     }
-    set({ user: null, isAuth: false, isLoading: false });
+    set({ user: null, isAuth: false, isAdmin: false, isLoading: false });
   },
 
   hydrate: async () => {
@@ -53,11 +55,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (res.ok) {
         const data = await res.json();
         set({ user: data.user, isAuth: true, isLoading: false });
+
+        // Check admin status in parallel (non-blocking)
+        fetch("/api/admin/check", { credentials: "include", headers })
+          .then((r) => r.json())
+          .then((d) => { if (d.isAdmin) set({ isAdmin: true }); })
+          .catch(() => {});
       } else {
-        set({ user: null, isAuth: false, isLoading: false });
+        set({ user: null, isAuth: false, isAdmin: false, isLoading: false });
       }
     } catch {
-      set({ user: null, isAuth: false, isLoading: false });
+      set({ user: null, isAuth: false, isAdmin: false, isLoading: false });
     }
   },
 }));

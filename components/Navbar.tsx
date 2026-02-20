@@ -23,6 +23,7 @@ import {
   Map,
   Settings,
   ChevronDown,
+  Shield,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserAvatar } from "@/components/ui";
@@ -44,7 +45,7 @@ const userMenuLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { isAuth, user, isLoading, hydrate, logout } = useAuthStore();
+  const { isAuth, isAdmin, user, isLoading, hydrate, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -185,6 +186,16 @@ export function Navbar() {
                           </Link>
                         );
                       })}
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          role="menuitem"
+                          className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-accent-light hover:text-white hover:bg-accent-muted transition-all"
+                        >
+                          <Shield className="w-4 h-4" />
+                          Admin Panel
+                        </Link>
+                      )}
                       <div className="border-t border-border">
                         <button
                           onClick={handleLogout}
@@ -279,6 +290,23 @@ export function Navbar() {
                       </Link>
                     );
                   })}
+                  {isAdmin && (
+                    <>
+                      <div className="border-t border-border my-2" />
+                      <Link
+                        href="/admin"
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                          pathname.startsWith("/admin")
+                            ? "bg-accent-muted text-accent-light"
+                            : "text-accent-light hover:text-white hover:bg-accent-muted"
+                        )}
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin Panel
+                      </Link>
+                    </>
+                  )}
                 </>
               )}
               <div className="flex items-center justify-between px-4 py-2">
