@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import {
   buildPrompt,
   sanitizeHint,
@@ -21,6 +22,15 @@ interface MentorHintBody {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`hint:${ip}`, { max: 5, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many hint requests. Please wait a moment." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
+
     const body: MentorHintBody = await request.json();
     const {
       code = "",

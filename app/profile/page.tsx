@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Card, Badge, Button, UserAvatar } from "@/components/ui";
+import { Card, Badge, Button, UserAvatar, toast } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
@@ -122,9 +122,12 @@ export default function ProfilePage() {
       if (res.ok) {
         setProfile((p) => (p ? { ...p, fullName: editName.trim() } : p));
         setEditing(false);
+        toast.success("Name updated!");
+      } else {
+        toast.error("Failed to save name");
       }
     } catch {
-      // silent
+      toast.error("Failed to save name");
     } finally {
       setSaving(false);
     }
@@ -195,17 +198,17 @@ export default function ProfilePage() {
                             className="bg-bg-elevated border border-border rounded-lg px-3 py-1.5 text-lg font-semibold focus:border-accent outline-none w-48"
                             autoFocus
                           />
-                          <button onClick={handleSaveName} disabled={saving} className="text-success hover:text-success/80">
+                          <button onClick={handleSaveName} disabled={saving} className="text-success hover:text-success/80" aria-label="Save name">
                             <Save className="w-4 h-4" />
                           </button>
-                          <button onClick={() => { setEditing(false); setEditName(profile.fullName); }} className="text-muted hover:text-white">
+                          <button onClick={() => { setEditing(false); setEditName(profile.fullName); }} className="text-muted hover:text-white" aria-label="Cancel editing">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 mb-1">
                           <h1 className="text-2xl font-bold">{profile.fullName}</h1>
-                          <button onClick={() => setEditing(true)} className="text-muted hover:text-accent transition-colors">
+                          <button onClick={() => setEditing(true)} className="text-muted hover:text-accent transition-colors" aria-label="Edit name">
                             <Pencil className="w-4 h-4" />
                           </button>
                         </div>

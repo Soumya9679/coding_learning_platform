@@ -4,6 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminGuard } from "@/components/AdminGuard";
 import { cn } from "@/lib/utils";
+
+/* noindex — prevent search engines from indexing admin pages */
+if (typeof document !== "undefined") {
+  if (!document.querySelector('meta[name="robots"][content="noindex"]')) {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, nofollow";
+    document.head.appendChild(meta);
+  }
+}
 import {
   LayoutDashboard,
   Users,

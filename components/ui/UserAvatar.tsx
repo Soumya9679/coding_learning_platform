@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
@@ -69,11 +70,14 @@ export function UserAvatar({ email, name, size = "md", className }: UserAvatarPr
       )}
     >
       {showImg ? (
-        <img
+        <Image
           src={gravatarUrl}
           alt={name || "User avatar"}
+          width={sizeConfig.px * 2}
+          height={sizeConfig.px * 2}
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
+          unoptimized
         />
       ) : (
         <span>{initial}</span>

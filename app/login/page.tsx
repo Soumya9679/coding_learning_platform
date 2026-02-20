@@ -7,13 +7,14 @@ import { motion } from "framer-motion";
 import { persistSessionToken, clearSessionToken } from "@/lib/session";
 import { useAuthStore } from "@/lib/store";
 import { Button, Input, StatusMessage } from "@/components/ui";
-import { LogIn, Zap } from "lucide-react";
+import { LogIn, Zap, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const hydrate = useAuthStore((s) => s.hydrate);
   const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "Enter your credentials to continue.", type: "info" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -85,15 +86,25 @@ export default function LoginPage() {
               disabled={loading}
               autoComplete="username"
             />
-            <Input
-              name="password"
-              type="password"
-              placeholder="Password"
-              label="Password"
-              required
-              disabled={loading}
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <Input
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                label="Password"
+                required
+                disabled={loading}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-[38px] text-muted hover:text-white transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             <Button type="submit" loading={loading} className="w-full" size="lg">
               <LogIn className="w-4 h-4" />
               Sign In

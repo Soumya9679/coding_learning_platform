@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, Badge, Button } from "@/components/ui";
+import { AuthGuard } from "@/components/AuthGuard";
 import { applyAuthHeaders } from "@/lib/session";
 import {
   Route,
@@ -71,6 +72,7 @@ export default function PathsPage() {
   const totalCompleted = paths.reduce((s, p) => s + p.completed, 0);
 
   return (
+    <AuthGuard>
     <div className="min-h-screen relative">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-accent/8 via-transparent to-transparent pointer-events-none" />
@@ -254,5 +256,6 @@ export default function PathsPage() {
         </motion.div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

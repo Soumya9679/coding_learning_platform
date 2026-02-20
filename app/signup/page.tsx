@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { persistSessionToken } from "@/lib/session";
 import { useAuthStore } from "@/lib/store";
 import { Button, Input, StatusMessage } from "@/components/ui";
-import { UserPlus, Zap } from "lucide-react";
+import { UserPlus, Zap, Check, X } from "lucide-react";
+
+const PW_RULES = [
+  { test: (pw: string) => pw.length >= 8, label: "8+ characters" },
+  { test: (pw: string) => /[a-z]/.test(pw), label: "Lowercase letter" },
+  { test: (pw: string) => /[A-Z]/.test(pw), label: "Uppercase letter" },
+  { test: (pw: string) => /[0-9]/.test(pw), label: "Number" },
+  { test: (pw: string) => /[^a-zA-Z0-9]/.test(pw), label: "Special character" },
+];
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,21 +23,34 @@ export default function SignupPage() {
   const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "Create your learner profile.", type: "info" });
   const [loading, setLoading] = useState(false);
 
+  // Field values for live validation
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const touch = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  // Validation
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const allPwRulesPass = PW_RULES.every((r) => r.test(password));
+  const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+
+  const fieldErrors = {
+    fullName: touched.fullName && fullName.trim().length < 2 ? "Name must be at least 2 characters" : undefined,
+    email: touched.email && email.length > 0 && !emailValid ? "Enter a valid email address" : undefined,
+    username: touched.username && username.trim().length < 3 ? "Username must be at least 3 characters" : undefined,
+    confirmPassword: touched.confirmPassword && confirmPassword.length > 0 && !passwordsMatch ? "Passwords do not match" : undefined,
+  };
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const fullName = (formData.get("fullName") as string).trim();
-    const email = (formData.get("email") as string).trim();
-    const username = (formData.get("username") as string).trim();
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
+    setTouched({ fullName: true, email: true, username: true, password: true, confirmPassword: true });
 
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const passwordOk = password.length >= 8 && /[0-9]/.test(password);
-
-    if (fullName.length < 2 || !emailOk || username.length < 3 || !passwordOk || password !== confirmPassword) {
-      setStatus({ message: "Please fill every field, use a real email, and ensure both passwords match.", type: "error" });
+    if (fullName.trim().length < 2 || !emailValid || username.trim().length < 3 || !allPwRulesPass || !passwordsMatch) {
+      setStatus({ message: "Please fix the errors above.", type: "error" });
       return;
     }
 
@@ -41,7 +62,7 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ fullName, email, username, password, confirmPassword }),
+        body: JSON.stringify({ fullName: fullName.trim(), email: email.trim(), username: username.trim(), password, confirmPassword }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -79,14 +100,34 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <Input name="fullName" type="text" placeholder="John Doe" label="Full Name" required disabled={loading} autoComplete="name" />
-            <Input name="email" type="email" placeholder="you@example.com" label="Email" required disabled={loading} autoComplete="email" />
-            <Input name="username" type="text" placeholder="pythonista" label="Username" required disabled={loading} autoComplete="username" />
-            <div className="space-y-1">
-              <Input name="password" type="password" placeholder="••••••••" label="Password" required disabled={loading} autoComplete="new-password" />
-              <p className="text-xs text-muted pl-1">At least 8 characters with a number.</p>
+            <Input name="fullName" type="text" placeholder="John Doe" label="Full Name" required disabled={loading} autoComplete="name"
+              value={fullName} onChange={(e) => setFullName(e.target.value)} onBlur={() => touch("fullName")} error={fieldErrors.fullName} />
+            <Input name="email" type="email" placeholder="you@example.com" label="Email" required disabled={loading} autoComplete="email"
+              value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => touch("email")} error={fieldErrors.email} />
+            <Input name="username" type="text" placeholder="pythonista" label="Username" required disabled={loading} autoComplete="username"
+              value={username} onChange={(e) => setUsername(e.target.value)} onBlur={() => touch("username")} error={fieldErrors.username} />
+
+            <div className="space-y-2">
+              <Input name="password" type="password" placeholder="••••••••" label="Password" required disabled={loading} autoComplete="new-password"
+                value={password} onChange={(e) => setPassword(e.target.value)} onBlur={() => touch("password")} />
+              {/* Password strength indicators */}
+              {(touched.password || password.length > 0) && (
+                <div className="grid grid-cols-2 gap-1 px-1">
+                  {PW_RULES.map((rule) => {
+                    const pass = rule.test(password);
+                    return (
+                      <div key={rule.label} className={`flex items-center gap-1.5 text-[11px] ${pass ? "text-success" : "text-muted"}`}>
+                        {pass ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                        {rule.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <Input name="confirmPassword" type="password" placeholder="••••••••" label="Confirm Password" required disabled={loading} autoComplete="new-password" />
+
+            <Input name="confirmPassword" type="password" placeholder="••••••••" label="Confirm Password" required disabled={loading} autoComplete="new-password"
+              value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} onBlur={() => touch("confirmPassword")} error={fieldErrors.confirmPassword} />
 
             <Button type="submit" loading={loading} className="w-full" size="lg">
               <UserPlus className="w-4 h-4" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 // GET /api/comments?challengeId=xxx — fetch comments for a challenge
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -52,6 +53,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = authenticateFromRequest(request);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`comment:${session.uid}:${ip}`, { max: 10, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many comments. Please wait." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
     }
 
     const body = await request.json();

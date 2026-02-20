@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
@@ -48,6 +48,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     hydrate();
@@ -63,6 +64,18 @@ export function Navbar() {
     setMobileOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userMenuOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -100,6 +113,7 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                       isActive
@@ -121,7 +135,7 @@ export function Navbar() {
             {isLoading ? (
               <div className="w-20 h-8 bg-bg-elevated rounded-lg animate-pulse" />
             ) : isAuth ? (
-              <div className="relative flex items-center gap-2">
+              <div ref={userMenuRef} className="relative flex items-center gap-2">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all"

@@ -2,7 +2,15 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { db } from "./firebase";
 
-const JWT_SECRET = process.env.JWT_SECRET || "pulsepy-dev-secret-change-me";
+const JWT_SECRET_FALLBACK = "pulsepy-dev-secret-change-me";
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET environment variable is required in production.");
+  }
+  return secret || JWT_SECRET_FALLBACK;
+}
 const SALT_ROUNDS = 12;
 
 export const SESSION_COOKIE_NAME = "pulsepy_session";
@@ -30,12 +38,12 @@ interface UserRecord {
 }
 
 export function signSessionToken(payload: Record<string, unknown>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_TTL_SECONDS });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: TOKEN_TTL_SECONDS });
 }
 
 export function verifySessionToken(token: string): SessionPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as SessionPayload;
+    return jwt.verify(token, getJwtSecret()) as SessionPayload;
   } catch {
     return null;
   }
@@ -54,7 +62,32 @@ export function isValidEmail(email: string): boolean {
 }
 
 export function isStrongPassword(password: string): boolean {
-  return password.length >= 8 && /[0-9]/.test(password);
+  if (password.length < 8) return false;
+  if (!/[0-9]/.test(password)) return false;
+  if (!/[a-z]/.test(password)) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[^a-zA-Z0-9]/.test(password)) return false;
+  return true;
+}
+
+/** Returns specific password requirement failures for inline validation. */
+export function getPasswordErrors(password: string): string[] {
+  const errors: string[] = [];
+  if (password.length < 8) errors.push("At least 8 characters");
+  if (!/[a-z]/.test(password)) errors.push("One lowercase letter");
+  if (!/[A-Z]/.test(password)) errors.push("One uppercase letter");
+  if (!/[0-9]/.test(password)) errors.push("One number");
+  if (!/[^a-zA-Z0-9]/.test(password)) errors.push("One special character");
+  return errors;
+}
+
+/** Strip HTML tags and trim whitespace from user input. */
+export function sanitizeText(input: string, maxLength = 5000): string {
+  return input
+    .replace(/<[^>]*>/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+    .trim()
+    .slice(0, maxLength);
 }
 
 export async function getUserByField(field: string, value: string): Promise<UserRecord | null> {

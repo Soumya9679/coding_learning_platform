@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, admin } from "@/lib/firebase";
 import { authenticateFromRequest } from "@/lib/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -194,6 +195,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const session = authenticateFromRequest(request);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`duel:${session.uid}:${ip}`, { max: 10, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
 
     const body = await request.json();
     const { action } = body; // create | join | submit | cancel

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button, Badge, Card } from "@/components/ui";
+import { Button, Badge, Card, toast } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { applyAuthHeaders } from "@/lib/session";
 import { 
@@ -454,8 +454,13 @@ def pulse_run(source: str):
       if (res.ok) {
         setCommentText("");
         fetchComments();
+        toast.success("Comment posted!");
+      } else {
+        toast.error("Failed to post comment");
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      toast.error("Failed to post comment");
+    } finally {
       setPostingComment(false);
     }
   };
@@ -549,6 +554,7 @@ def pulse_run(source: str):
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-1.5 rounded-lg text-muted hover:text-white hover:bg-bg-elevated transition-colors"
                 title={sidebarOpen ? "Hide challenge panel" : "Show challenge panel"}
+                  aria-label={sidebarOpen ? "Hide challenge panel" : "Show challenge panel"}
               >
                 {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
               </button>
@@ -980,7 +986,7 @@ def pulse_run(source: str):
                             maxLength={2000}
                             className="flex-1 px-3 py-2 bg-bg-elevated rounded-lg text-xs border border-border focus:border-accent/50 outline-none transition-colors"
                           />
-                          <Button size="sm" onClick={postComment} loading={postingComment}>
+                          <Button size="sm" onClick={postComment} loading={postingComment} aria-label="Post comment">
                             <Send className="w-3 h-3" />
                           </Button>
                         </div>

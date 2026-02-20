@@ -1,11 +1,12 @@
 /// <reference lib="webworker" />
 
 const CACHE_NAME = "pulsepy-v1";
-const OFFLINE_URL = "/";
+const OFFLINE_URL = "/offline";
 
 // Assets to precache for offline game access
 const PRECACHE_URLS = [
   "/",
+  "/offline",
   "/gamified",
   "/game1",
   "/game2",

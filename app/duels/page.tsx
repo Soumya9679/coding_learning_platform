@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
-import { AnimatedSection } from "@/components/ui";
+import { AnimatedSection, toast } from "@/components/ui";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -197,10 +197,10 @@ export default function DuelsPage() {
         // Poll for opponent
         pollRef.current = setInterval(() => fetchDuelState(data.duelId), 3000);
       } else {
-        alert(data.error || "Failed to create duel");
+        toast.error(data.error || "Failed to create duel");
       }
     } catch {
-      alert("Network error");
+      toast.error("Network error");
     } finally {
       setActionLoading(false);
     }
@@ -224,10 +224,10 @@ export default function DuelsPage() {
         // Poll for state changes
         pollRef.current = setInterval(() => fetchDuelState(duelId), 3000);
       } else {
-        alert(data.error || "Failed to join");
+        toast.error(data.error || "Failed to join");
       }
     } catch {
-      alert("Network error");
+      toast.error("Network error");
     } finally {
       setActionLoading(false);
     }
@@ -248,7 +248,7 @@ export default function DuelsPage() {
       if (pollRef.current) clearInterval(pollRef.current);
       fetchLobby();
     } catch {
-      alert("Network error");
+      toast.error("Network error");
     }
   };
 
@@ -345,7 +345,7 @@ export default function DuelsPage() {
       // Refresh duel state
       await fetchDuelState(activeDuelId);
     } catch {
-      alert("Failed to submit");
+      toast.error("Failed to submit");
     }
   };
 

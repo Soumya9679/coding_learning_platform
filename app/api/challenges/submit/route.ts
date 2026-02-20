@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 /**
  * POST /api/challenges/submit
@@ -21,6 +22,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const user = authenticateFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+    }
+
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(`submit:${user.uid}:${ip}`, { max: 20, windowSeconds: 60 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Too many submissions. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
     }
 
     const body: SubmitBody = await request.json();
