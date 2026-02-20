@@ -3,6 +3,7 @@ import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { ThemeHydrator } from "@/components/ThemeHydrator";
 import { PWARegister } from "@/components/PWARegister";
+import { ToastProvider } from "@/components/ToastProvider";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -66,8 +67,8 @@ export const viewport: Viewport = {
   themeColor: "#6366f1",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
 };
 
 export default function RootLayout({
@@ -81,6 +82,7 @@ export default function RootLayout({
         <ThemeHydrator />
         <PWARegister />
         <Navbar />
+        <ToastProvider />
         <main className="pt-16">{children}</main>
       </body>
     </html>

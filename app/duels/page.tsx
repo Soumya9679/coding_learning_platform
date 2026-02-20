@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
 import { AnimatedSection } from "@/components/ui";
@@ -24,6 +25,8 @@ import {
   RotateCcw,
   AlertTriangle,
 } from "lucide-react";
+
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 interface LobbyDuel {
   id: string;
@@ -107,7 +110,6 @@ export default function DuelsPage() {
   const [pyodide, setPyodide] = useState<unknown>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuth) router.push("/login");
@@ -500,13 +502,23 @@ export default function DuelsPage() {
                         </button>
                       </div>
                     </div>
-                    <textarea
-                      ref={editorRef}
+                    <MonacoEditor
+                      height="320px"
+                      defaultLanguage="python"
+                      theme="vs-dark"
                       value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      className="w-full h-64 lg:h-80 bg-bg-elevated rounded-xl border border-border p-4 font-mono text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-accent/50"
-                      spellCheck={false}
-                      placeholder="Write your Python code here..."
+                      onChange={(val) => setCode(val || "")}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        fontFamily: "var(--font-mono), monospace",
+                        lineNumbers: "on",
+                        scrollBeyondLastLine: false,
+                        wordWrap: "on",
+                        padding: { top: 12 },
+                        renderLineHighlight: "gutter",
+                        automaticLayout: true,
+                      }}
                     />
                   </div>
                   <div className="space-y-2">

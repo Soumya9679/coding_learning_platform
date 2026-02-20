@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Badge, Button } from "@/components/ui";
+import { Card, Badge, Button, CommunitySkeleton, Pagination } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { applyAuthHeaders } from "@/lib/session";
 import { useAuthStore } from "@/lib/store";
@@ -18,6 +18,7 @@ import {
   Code2,
   X,
   Loader2,
+  Search,
 } from "lucide-react";
 
 interface CommunityChallenge {
@@ -62,12 +63,17 @@ export default function CommunityPage() {
   const [steps, setSteps] = useState(["", "", ""]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
-  const fetchChallenges = useCallback(async () => {
+  const fetchChallenges = useCallback(async (pageNum = 1, search = "") => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ filter });
+      const params = new URLSearchParams({ filter, page: String(pageNum), pageSize: "12" });
       if (tagFilter) params.set("tag", tagFilter);
+      if (search) params.set("search", search);
       const res = await fetch(`/api/community/challenges?${params}`, {
         credentials: "include",
         headers: applyAuthHeaders(),
@@ -75,6 +81,8 @@ export default function CommunityPage() {
       if (res.ok) {
         const data = await res.json();
         setChallenges(data.challenges || []);
+        setTotalPages(data.totalPages || 1);
+        setPage(data.page || 1);
       }
     } catch { /* ignore */ } finally {
       setLoading(false);
@@ -82,8 +90,8 @@ export default function CommunityPage() {
   }, [filter, tagFilter]);
 
   useEffect(() => {
-    fetchChallenges();
-  }, [fetchChallenges]);
+    fetchChallenges(1, searchQuery);
+  }, [fetchChallenges, searchQuery]);
 
   const handleCreate = async () => {
     setSubmitError("");
@@ -311,35 +319,44 @@ export default function CommunityPage() {
               </button>
             </div>
 
-            <div className="flex items-center gap-1 flex-wrap">
+            <div className="relative ml-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+              <input
+                type="text"
+                placeholder="Search challenges…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { setSearchQuery(searchInput); setPage(1); } }}
+                className="pl-8 pr-3 py-1.5 rounded-lg text-xs bg-bg-elevated border border-border text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 w-44"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 flex-wrap mb-6">
+            <button
+              onClick={() => setTagFilter(null)}
+              className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
+                tagFilter === null ? "bg-accent text-white" : "text-muted hover:text-white"
+              }`}
+            >
+              All
+            </button>
+            {TAGS.map((t) => (
               <button
-                onClick={() => setTagFilter(null)}
+                key={t}
+                onClick={() => setTagFilter(t)}
                 className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
-                  tagFilter === null ? "bg-accent text-white" : "text-muted hover:text-white"
+                  tagFilter === t ? "bg-accent/20 text-accent" : "text-muted hover:text-white"
                 }`}
               >
-                All
+                {t}
               </button>
-              {TAGS.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTagFilter(t)}
-                  className={`px-2 py-1 rounded-md text-[10px] font-medium transition-colors ${
-                    tagFilter === t ? "bg-accent/20 text-accent" : "text-muted hover:text-white"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
 
           {/* Challenge List */}
           {loading ? (
-            <div className="flex flex-col items-center py-16 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-accent" />
-              <p className="text-sm text-muted">Loading challenges…</p>
-            </div>
+            <CommunitySkeleton />
           ) : challenges.length === 0 ? (
             <Card className="text-center py-12">
               <Code2 className="w-10 h-10 text-muted mx-auto mb-3" />
@@ -425,6 +442,16 @@ export default function CommunityPage() {
                 </motion.div>
               ))}
             </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={(p) => { setPage(p); fetchChallenges(p, searchQuery); }}
+              className="pt-4"
+            />
           )}
         </div>
       </div>

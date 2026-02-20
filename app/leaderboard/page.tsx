@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, LeaderboardSkeleton, Pagination } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
@@ -24,6 +24,7 @@ import {
   UserMinus,
   Users,
   Share2,
+  Search,
 } from "lucide-react";
 
 interface LeaderboardEntry {
@@ -60,23 +61,31 @@ export default function LeaderboardPage() {
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [shareToast, setShareToast] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
-  const fetchLeaderboard = useCallback(async (isRefresh = false) => {
+  const fetchLeaderboard = useCallback(async (isRefresh = false, pageNum = 1, search = "") => {
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
 
       const headers = applyAuthHeaders();
+      const params = new URLSearchParams({ page: String(pageNum), pageSize: "25" });
+      if (search) params.set("search", search);
 
       const [leaderboardRes, meRes] = await Promise.all([
-        fetch("/api/leaderboard", { credentials: "include", headers }),
+        fetch(`/api/leaderboard?${params}`, { credentials: "include", headers }),
         fetch("/api/leaderboard/me", { credentials: "include", headers }),
       ]);
 
       if (!leaderboardRes.ok) throw new Error("Failed to fetch");
       const data = await leaderboardRes.json();
       setEntries(data.entries || []);
+      setTotalPages(data.totalPages || 1);
+      setPage(data.page || 1);
 
       if (meRes.ok) {
         const meData = await meRes.json();
@@ -91,11 +100,13 @@ export default function LeaderboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchLeaderboard();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => fetchLeaderboard(true), 30000);
+    fetchLeaderboard(false, 1, searchQuery);
+    // Auto-refresh every 30 seconds (only if tab is visible)
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchLeaderboard(true, page, searchQuery);
+    }, 30000);
     return () => clearInterval(interval);
-  }, [fetchLeaderboard]);
+  }, [fetchLeaderboard, searchQuery]);
 
   // Fetch following list
   const fetchFollowing = useCallback(async () => {
@@ -248,8 +259,8 @@ export default function LeaderboardPage() {
               transition={{ delay: 0.2 }}
             >
               <Card className="space-y-5">
-                {/* Header with Refresh */}
-                <div className="flex items-center justify-between">
+                {/* Header with Search + Refresh */}
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                       <Medal className="w-5 h-5 text-accent" />
@@ -275,34 +286,42 @@ export default function LeaderboardPage() {
                       </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => fetchLeaderboard(true)}
-                    disabled={refreshing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-white bg-bg-elevated hover:bg-bg-elevated/80 transition-colors disabled:opacity-50"
-                  >
-                    {refreshing ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    )}
-                    Refresh
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+                      <input
+                        type="text"
+                        placeholder="Search users…"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { setSearchQuery(searchInput); setPage(1); } }}
+                        className="pl-8 pr-3 py-1.5 rounded-lg text-xs bg-bg-elevated border border-border text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 w-40"
+                      />
+                    </div>
+                    <button
+                      onClick={() => fetchLeaderboard(true, page, searchQuery)}
+                      disabled={refreshing}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-white bg-bg-elevated hover:bg-bg-elevated/80 transition-colors disabled:opacity-50"
+                    >
+                      {refreshing ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      Refresh
+                    </button>
+                  </div>
                 </div>
 
                 {/* Loading State */}
-                {loading && (
-                  <div className="flex flex-col items-center justify-center py-16 gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-accent" />
-                    <p className="text-sm text-muted">Loading rankings...</p>
-                  </div>
-                )}
+                {loading && <LeaderboardSkeleton />}
 
                 {/* Error State */}
                 {error && !loading && (
                   <div className="flex flex-col items-center justify-center py-16 gap-3">
                     <p className="text-sm text-danger">{error}</p>
                     <button
-                      onClick={() => fetchLeaderboard()}
+                      onClick={() => fetchLeaderboard(false, page, searchQuery)}
                       className="px-4 py-2 rounded-lg text-sm bg-accent text-white hover:bg-accent/80 transition-colors"
                     >
                       Retry
@@ -436,6 +455,16 @@ export default function LeaderboardPage() {
                         );
                       })}
                     </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <Pagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={(p) => { setPage(p); fetchLeaderboard(false, p, searchQuery); }}
+                        className="pt-4"
+                      />
+                    )}
 
                     {/* Current User (if not in top entries) */}
                     {!isInLeaderboard && user && (

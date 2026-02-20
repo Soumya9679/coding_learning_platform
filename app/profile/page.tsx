@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Card, Badge, Button } from "@/components/ui";
+import { Card, Badge, Button, UserAvatar } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
@@ -180,9 +180,12 @@ export default function ProfilePage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-accent/5 via-accent-hot/5 to-accent/5 pointer-events-none" />
                 <div className="relative flex flex-wrap items-start justify-between gap-6">
                   <div className="flex items-center gap-5">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center text-3xl font-bold text-white shadow-glow">
-                      {initial}
-                    </div>
+                    <UserAvatar
+                      email={profile.email}
+                      name={profile.fullName}
+                      size="xl"
+                      className="shadow-glow"
+                    />
                     <div>
                       {editing ? (
                         <div className="flex items-center gap-2 mb-1">

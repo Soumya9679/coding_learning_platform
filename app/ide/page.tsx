@@ -139,6 +139,7 @@ export default function IdePage() {
   const challenge = challenges.find(c => c.id === selectedChallengeId) || challenges[0];
   
   const [code, setCode] = useState(challenge.starterCode);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [output, setOutput] = useState("Run your code to see output here.");
   const [feedback, setFeedback] = useState("Feedback will appear right after each run.");
   const [outputStatus, setOutputStatus] = useState<OutputStatus>("idle");
@@ -166,12 +167,15 @@ export default function IdePage() {
     };
   }, [timerActive]);
 
-  // Reset when challenge changes
+  // Reset when challenge changes — restore draft if available
   useEffect(() => {
-    setCode(challenge.starterCode);
+    const draftKey = `pulsepy_draft_${selectedChallengeId}`;
+    const saved = typeof window !== "undefined" ? localStorage.getItem(draftKey) : null;
+    setCode(saved || challenge.starterCode);
+    setDraftSaved(!!saved);
     setOutput("Run your code to see output here.");
-    setFeedback("Feedback will appear right after each run.");
-    setOutputStatus("idle");
+    setFeedback(saved ? "Draft restored. Pick up where you left off!" : "Feedback will appear right after each run.");
+    setOutputStatus(saved ? "info" : "idle");
     setTestResults([]);
     setMentorHint("Run your code first, then request a hint if you still feel stuck.");
     setMentorTone("Status: idle");
@@ -179,6 +183,23 @@ export default function IdePage() {
     setTimerActive(false);
     lastErrorRef.current = "";
   }, [selectedChallengeId, challenge.starterCode]);
+
+  // Auto-save draft to localStorage (debounced 1s)
+  useEffect(() => {
+    if (!selectedChallengeId) return;
+    const draftKey = `pulsepy_draft_${selectedChallengeId}`;
+    // Don't save if code is still the starter code
+    if (code === challenge.starterCode) {
+      localStorage.removeItem(draftKey);
+      setDraftSaved(false);
+      return;
+    }
+    const timeout = setTimeout(() => {
+      localStorage.setItem(draftKey, code);
+      setDraftSaved(true);
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [code, selectedChallengeId, challenge.starterCode]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -399,6 +420,9 @@ def pulse_run(source: str):
     setTestResults([]);
     setElapsedTime(0);
     setTimerActive(false);
+    setDraftSaved(false);
+    // Clear saved draft
+    localStorage.removeItem(`pulsepy_draft_${selectedChallengeId}`);
   };
 
   const fetchComments = useCallback(async () => {
@@ -723,6 +747,9 @@ def pulse_run(source: str):
                     <div className="flex items-center gap-2 px-4 py-2 bg-bg-elevated rounded-t-lg border-b-2 border-accent">
                       <Code2 className="w-4 h-4 text-accent" />
                       <span className="text-sm font-medium">solution.py</span>
+                      {draftSaved && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-success/15 text-success font-medium">saved</span>
+                      )}
                     </div>
                   </div>
                   

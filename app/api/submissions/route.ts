@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
  * Query params:
  *   ?challengeId=xyz  — filter by challenge (optional)
  *   ?limit=50         — max results (default 50)
+ *   ?page=1           — page number (default 1)
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const url = new URL(request.url);
     const challengeId = url.searchParams.get("challengeId");
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 200);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
 
     let query = db
       .collection("submissions")
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const snap = await query.get();
 
-    const submissions = snap.docs
+    const allSubmissions = snap.docs
       .map((doc) => {
         const d = doc.data();
         return {
@@ -43,10 +45,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           createdAt: d.createdAt?.toDate?.()?.toISOString() || "",
         };
       })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, limit);
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json({ submissions });
+    const total = Math.min(allSubmissions.length, limit);
+    const pageSize = Math.min(limit, 25);
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
+    const submissions = allSubmissions.slice(start, start + pageSize);
+
+    return NextResponse.json({ submissions, page, pageSize, total, totalPages });
   } catch (error) {
     console.error("Submissions GET error:", error);
     return NextResponse.json({ error: "Failed to load submissions." }, { status: 500 });

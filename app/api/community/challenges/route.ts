@@ -14,6 +14,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const filter = request.nextUrl.searchParams.get("filter") || "approved"; // approved | mine | pending
     const tag = request.nextUrl.searchParams.get("tag");
 
+    const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1"));
+    const pageSize = Math.min(20, Math.max(1, parseInt(request.nextUrl.searchParams.get("pageSize") || "12")));
+    const search = (request.nextUrl.searchParams.get("search") || "").trim().toLowerCase();
+
     let query: FirebaseFirestore.Query = db.collection("community_challenges");
 
     if (filter === "mine") {
@@ -51,10 +55,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       challenges = challenges.filter((c) => c.tag === tag);
     }
 
+    if (search) {
+      challenges = challenges.filter(
+        (c) => c.title.toLowerCase().includes(search) ||
+               c.description.toLowerCase().includes(search) ||
+               c.authorUsername.toLowerCase().includes(search)
+      );
+    }
+
     // Sort by likes/plays descending
     challenges.sort((a, b) => (b.likes + b.plays) - (a.likes + a.plays));
 
-    return NextResponse.json({ challenges });
+    const total = challenges.length;
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
+    challenges = challenges.slice(start, start + pageSize);
+
+    return NextResponse.json({ challenges, page, pageSize, total, totalPages });
   } catch (error) {
     console.error("Community challenges GET error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

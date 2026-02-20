@@ -472,8 +472,8 @@ function PipelinePuzzleGame() {
             <Button onClick={startGame} className="flex-1 !bg-gradient-to-r !from-cyan-600 !to-blue-600">
               <RotateCcw className="w-4 h-4 mr-2" /> Play Again
             </Button>
-            <Button onClick={() => setPhase("menu")} variant="secondary" className="flex-1">
-              🏠 Menu
+            <Button onClick={() => window.location.href = "/gamified"} variant="secondary" className="flex-1">
+              Game Lab
             </Button>
           </div>
         </motion.div>

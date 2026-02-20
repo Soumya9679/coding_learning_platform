@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, Badge, Button } from "@/components/ui";
+import { Card, Badge, Button, HistorySkeleton, Pagination } from "@/components/ui";
 import { AuthGuard } from "@/components/AuthGuard";
 import { applyAuthHeaders } from "@/lib/session";
 import {
@@ -36,12 +36,14 @@ export default function HistoryPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filterChallenge, setFilterChallenge] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchSubmissions = useCallback(async () => {
+  const fetchSubmissions = useCallback(async (pageNum = 1) => {
     try {
       setLoading(true);
       setError(null);
-      const params = new URLSearchParams({ limit: "100" });
+      const params = new URLSearchParams({ page: String(pageNum) });
       if (filterChallenge) params.set("challengeId", filterChallenge);
 
       const res = await fetch(`/api/submissions?${params}`, {
@@ -51,6 +53,8 @@ export default function HistoryPage() {
       if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setSubmissions(data.submissions || []);
+      setTotalPages(data.totalPages || 1);
+      setPage(data.page || 1);
     } catch {
       setError("Could not load submission history.");
     } finally {
@@ -59,7 +63,7 @@ export default function HistoryPage() {
   }, [filterChallenge]);
 
   useEffect(() => {
-    fetchSubmissions();
+    fetchSubmissions(1);
   }, [fetchSubmissions]);
 
   const handleCopy = async (code: string, id: string) => {
@@ -121,16 +125,12 @@ export default function HistoryPage() {
 
             {/* Content */}
             <Card>
-              {loading && (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-accent" />
-                </div>
-              )}
+              {loading && <HistorySkeleton />}
 
               {error && !loading && (
                 <div className="text-center py-16">
                   <p className="text-sm text-danger mb-3">{error}</p>
-                  <Button variant="ghost" size="sm" onClick={fetchSubmissions}>Retry</Button>
+                  <Button variant="ghost" size="sm" onClick={() => fetchSubmissions()}>Retry</Button>
                 </div>
               )}
 
@@ -220,6 +220,16 @@ export default function HistoryPage() {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Pagination */}
+              {!loading && totalPages > 1 && (
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(p) => { setPage(p); fetchSubmissions(p); }}
+                  className="p-4"
+                />
               )}
             </Card>
           </motion.div>

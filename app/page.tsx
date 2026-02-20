@@ -4,7 +4,7 @@ import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/ui"
 
 const stats = [
   { value: "10+", label: "Coding Challenges", icon: Trophy },
-  { value: "5", label: "Mini-Games", icon: Gamepad2 },
+  { value: "3", label: "Mini-Games", icon: Gamepad2 },
   { value: "AI", label: "Powered Mentor", icon: Brain },
   { value: "∞", label: "Practice Sessions", icon: Zap },
 ];
@@ -17,13 +17,13 @@ const features = [
   },
   {
     icon: Trophy,
-    title: "Leaderboard & XP",
-    desc: "Earn XP by solving challenges and playing games. Climb the rankings and unlock achievements.",
+    title: "Coding Challenges",
+    desc: "10 curated Python challenges with auto-grading tests. Get instant feedback on every submission.",
   },
   {
     icon: Gamepad2,
     title: "Game Lab",
-    desc: "Five unique mini-games — type code, arrange programs, race an AI, match concepts, and blast falling expressions. All teaching Python.",
+    desc: "Three cinematic mini-games that turn Python drills into engaging, score-driven experiences.",
   },
   {
     icon: Brain,
@@ -212,11 +212,10 @@ export default function HomePage() {
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
-                    href="/leaderboard"
+                    href="/challenges"
                     className="inline-flex items-center gap-2 px-7 py-3.5 bg-bg-elevated border border-border text-white font-medium rounded-xl hover:border-accent/40 transition-all"
                   >
-                    <Trophy className="w-4 h-4" />
-                    Leaderboard
+                    Browse Challenges
                   </Link>
                 </div>
               </div>
