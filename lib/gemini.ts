@@ -14,21 +14,43 @@ interface PromptInput {
 
 export function buildPrompt(input: PromptInput): string {
   return [
+    `You are a concise AI coding mentor. Reply with a 4–5 sentence hint. No code blocks. No full solutions. Guide the learner toward the next step with clear, encouraging advice.`,
+    ``,
     `Challenge: ${input.challengeTitle}`,
-    `Description: ${input.description}`,
-    `Rubric: ${input.rubric}`,
-    `Instructions: ${input.mentorInstructions}`,
+    input.description ? `Description: ${input.description}` : "",
+    input.rubric ? `Rubric: ${input.rubric}` : "",
     `Learner code:\n${input.code}`,
     input.stdout ? `stdout:\n${input.stdout}` : "",
     input.stderr ? `stderr:\n${input.stderr}` : "",
     `Expected output:\n${input.expectedOutput}`,
+    ``,
+    `Reply in 4–5 sentences. Be encouraging. Point toward the next step without giving the full answer.`,
   ]
     .filter(Boolean)
     .join("\n\n");
 }
 
 export function sanitizeHint(raw: string): string {
-  return raw.replace(/```[\s\S]*?```/g, "[code hidden]").trim();
+  // Strip code blocks
+  let text = raw.replace(/```[\s\S]*?```/g, "").trim();
+
+  // Trim to last complete sentence so we never show a half-finished thought
+  const sentenceEnd = /[.!?]/;
+  if (text.length > 0 && !sentenceEnd.test(text[text.length - 1])) {
+    // Find the last sentence-ending punctuation
+    let lastIdx = -1;
+    for (let i = text.length - 1; i >= 0; i--) {
+      if (sentenceEnd.test(text[i])) {
+        lastIdx = i;
+        break;
+      }
+    }
+    if (lastIdx > 0) {
+      text = text.substring(0, lastIdx + 1);
+    }
+  }
+
+  return text.trim();
 }
 
 export function fallbackCopy(stdout: string, stderr: string): string {
@@ -48,7 +70,7 @@ export async function fetchGeminiHint(prompt: string): Promise<string> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 256, temperature: 0.7 },
+      generationConfig: { maxOutputTokens: 350, temperature: 0.7 },
     }),
   });
 

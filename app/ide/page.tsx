@@ -361,7 +361,14 @@ export default function IdePage() {
       });
 
       const data = await res.json();
-      setMentorHint(data?.hint || "Keep iteratingâ€”focus on the logic step by step.");
+
+      if (!res.ok) {
+        setMentorHint(data?.error || "Mentor is rate-limited. Wait a moment and try again.");
+        setMentorTone("Status: rate limited");
+        return;
+      }
+
+      setMentorHint(data?.hint || "Keep iterating—focus on the logic step by step.");
       setMentorTone(`Tone: ${data?.tone ?? "spark"}`);
     } catch {
       setMentorHint("Mentor had a hiccup. Re-run your code and try again in a bit.");
@@ -848,7 +855,7 @@ export default function IdePage() {
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="min-h-0"
               >
-                <Card className="h-full flex flex-col space-y-2 relative overflow-hidden">
+                <Card className="h-full flex flex-col space-y-2 relative">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-radial from-accent/10 to-transparent pointer-events-none" />
                   
                   <div className="flex items-center justify-between relative flex-shrink-0">

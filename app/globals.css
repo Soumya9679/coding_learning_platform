@@ -84,6 +84,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  button, [role="button"], a, summary, select, label[for], [tabindex]:not([tabindex="-1"]) {
+    cursor: pointer;
+  }
+
   body {
     background-color: var(--color-bg);
     color: #fff;
