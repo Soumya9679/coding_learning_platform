@@ -28,7 +28,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+const CodeEditor = dynamic(() => import("@/components/CodeEditor"), { ssr: false });
 
 const diffColors: Record<number, string> = {
   1: "text-emerald-400",
@@ -427,23 +427,10 @@ export default function DuelsPage() {
                         </button>
                       </div>
                     </div>
-                    <MonacoEditor
+                    <CodeEditor
                       height="320px"
-                      defaultLanguage="python"
-                      theme="vs-dark"
                       value={code}
                       onChange={(val) => setCode(val || "")}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        fontFamily: "var(--font-mono), monospace",
-                        lineNumbers: "on",
-                        scrollBeyondLastLine: false,
-                        wordWrap: "on",
-                        padding: { top: 12 },
-                        renderLineHighlight: "gutter",
-                        automaticLayout: true,
-                      }}
                     />
                   </div>
                   <div className="space-y-2">

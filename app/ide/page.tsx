@@ -30,7 +30,17 @@ import {
   Send
 } from "lucide-react";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+const CodeEditor = dynamic(() => import("@/components/CodeEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center bg-[#1e1e1e] rounded-lg" style={{ height: "220px" }}>
+      <div className="flex items-center gap-2 text-muted text-sm">
+        <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        Loading editor…
+      </div>
+    </div>
+  ),
+});
 
 interface ChallengeData {
   id: string;
@@ -152,6 +162,7 @@ export default function IdePage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const runCodeRef = useRef<() => void>(() => {});
   const requestHintRef = useRef<() => void>(() => {});
+  // No editor ref needed — CodeMirror handles its own layout
 
   // Timer effect
   useEffect(() => {
@@ -198,6 +209,8 @@ export default function IdePage() {
     }, 1000);
     return () => clearTimeout(timeout);
   }, [code, selectedChallengeId, challenge.starterCode]);
+
+  // CodeMirror auto-resizes — no manual layout sync needed
 
   // Keyboard shortcuts — use refs to avoid stale closures & re-registering on every keystroke
   useEffect(() => {
@@ -688,17 +701,10 @@ export default function IdePage() {
           {/* Main Workspace */}
           <div className="flex flex-col gap-3 min-h-0">
             {/* Editor Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="flex-shrink-0"
-            >
-              <Card className="space-y-2 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/3 to-transparent pointer-events-none" />
-                
+            <div className="flex-shrink-0">
+              <div className="bg-bg-card border border-border rounded-2xl p-4 space-y-2">
                 {/* Editor Header - File Tab Style */}
-                <div className="flex items-center justify-between relative">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <div className="flex items-center gap-2 px-4 py-2 bg-bg-elevated rounded-t-lg border-b-2 border-accent">
                       <Code2 className="w-4 h-4 text-accent" />
@@ -717,46 +723,25 @@ export default function IdePage() {
                     <Button onClick={runCode} loading={running} className="relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-r from-accent to-accent-hot opacity-0 group-hover:opacity-100 transition-opacity" />
                       <Play className="w-4 h-4 relative" />
-                      <span className="relative">{running ? "Runningâ€¦" : "Run Code"}</span>
+                      <span className="relative">{running ? "Running\u2026" : "Run Code"}</span>
                       <Zap className="w-3 h-3 ml-1 relative" />
                     </Button>
                   </div>
                 </div>
 
-                {/* Monaco Editor */}
-                <div className="rounded-lg overflow-hidden border border-border shadow-inner">
-                  <MonacoEditor
-                    height="180px"
-                    language="python"
-                    theme="vs-dark"
-                    value={code}
-                    onChange={(v) => setCode(v || "")}
-                    options={{
-                      minimap: { enabled: false },
-                      automaticLayout: true,
-                      fontSize: typeof window !== "undefined" && window.innerWidth < 640 ? 12 : 13,
-                      fontFamily: "var(--font-mono), JetBrains Mono, monospace",
-                      padding: { top: 8, bottom: 8 },
-                      lineNumbers: typeof window !== "undefined" && window.innerWidth < 640 ? "off" : "on",
-                      renderLineHighlight: "all",
-                      scrollBeyondLastLine: false,
-                      smoothScrolling: true,
-                      cursorBlinking: "smooth",
-                      cursorSmoothCaretAnimation: "on",
-                      wordWrap: "on",
-                      folding: typeof window !== "undefined" && window.innerWidth >= 640,
-                      glyphMargin: false,
-                      lineDecorationsWidth: typeof window !== "undefined" && window.innerWidth < 640 ? 0 : 10,
-                    }}
-                  />
-                </div>
+                {/* Code Editor */}
+                <CodeEditor
+                  value={code}
+                  onChange={setCode}
+                  height="220px"
+                />
 
                 <div className="flex items-center justify-between text-[10px] text-muted">
                   <span>Python 3.11 via Pyodide</span>
                   <span>Press Ctrl+H for AI hint</span>
                 </div>
-              </Card>
-            </motion.div>
+              </div>
+            </div>
 
             {/* Output and Mentor Panels */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
