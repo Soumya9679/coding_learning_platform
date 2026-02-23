@@ -133,6 +133,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (mode === "lobby") {
       const snap = await db.collection("duels")
         .where("status", "==", "waiting")
+        .orderBy("createdAt", "desc")
+        .limit(20)
         .get();
       const duels = snap.docs
         .filter((doc) => doc.data().creatorId !== session.uid) // exclude own duels
@@ -146,18 +148,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             timeLimit: d.timeLimit || 300,
             createdAt: d.createdAt?.toDate?.()?.toISOString() || "",
           };
-        })
-        .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
-        .slice(0, 20);
+        });
       return NextResponse.json({ duels });
     }
 
     // Mine — user's recent duels
     const creatorSnap = await db.collection("duels")
       .where("creatorId", "==", session.uid)
+      .orderBy("createdAt", "desc")
+      .limit(10)
       .get();
     const opponentSnap = await db.collection("duels")
       .where("opponentId", "==", session.uid)
+      .orderBy("createdAt", "desc")
+      .limit(10)
       .get();
 
     const allDocs = [...creatorSnap.docs, ...opponentSnap.docs];

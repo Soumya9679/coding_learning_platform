@@ -53,6 +53,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       const unsubLobby = db
         .collection("duels")
         .where("status", "==", "waiting")
+        .orderBy("createdAt", "desc")
+        .limit(30)
         .onSnapshot(
           (snap) => {
             const duels = snap.docs
@@ -68,9 +70,7 @@ export async function GET(request: NextRequest): Promise<Response> {
                   createdAt:
                     d.createdAt?.toDate?.()?.toISOString() || "",
                 };
-              })
-              .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
-              .slice(0, 30);
+              });
             safeSend("lobby_update", duels);
           },
           (err) => {
@@ -84,6 +84,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       const unsubMyCreated = db
         .collection("duels")
         .where("creatorId", "==", session.uid)
+        .orderBy("createdAt", "desc")
+        .limit(10)
         .onSnapshot(
           (snap) => {
             sendMyDuels();
@@ -97,6 +99,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       const unsubMyJoined = db
         .collection("duels")
         .where("opponentId", "==", session.uid)
+        .orderBy("createdAt", "desc")
+        .limit(10)
         .onSnapshot(
           () => {
             sendMyDuels();
@@ -118,10 +122,14 @@ export async function GET(request: NextRequest): Promise<Response> {
               db
                 .collection("duels")
                 .where("creatorId", "==", uid)
+                .orderBy("createdAt", "desc")
+                .limit(10)
                 .get(),
               db
                 .collection("duels")
                 .where("opponentId", "==", uid)
+                .orderBy("createdAt", "desc")
+                .limit(10)
                 .get(),
             ]);
             const allDocs = [...creatorSnap.docs, ...oppSnap.docs];
