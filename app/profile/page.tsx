@@ -8,6 +8,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { useAuthStore } from "@/lib/store";
 import { applyAuthHeaders } from "@/lib/session";
 import type { Achievement, ProfileSubmission, ProfileData } from "@/lib/types";
+import { computeLevel } from "@/lib/levels";
 import {
   Trophy,
   Flame,
@@ -29,17 +30,40 @@ import {
   Loader2,
   User,
   Settings,
+  Lock,
+  Shield,
+  Sparkles,
+  Sun,
+  Swords,
+  Cpu,
+  Terminal,
+  Braces,
+  Medal,
+  CalendarCheck,
+  Sprout,
+  Leaf,
+  Infinity as InfinityIcon,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Zap,
-  Code2,
-  Target,
-  Trophy,
-  Crown,
-  Flame,
-  Gamepad2,
-  Star,
+  Zap, Code2, Target, Trophy, Crown, Flame, Gamepad2, Star, Sun, Shield,
+  Sparkles, Swords, TrendingUp, Calendar, Medal, CalendarCheck, Cpu,
+  Terminal, Braces, Sprout, Leaf, Infinity: InfinityIcon,
+};
+
+const rarityBorder: Record<string, string> = {
+  common: "border-zinc-500/30",
+  uncommon: "border-green-500/30",
+  rare: "border-blue-500/30",
+  epic: "border-purple-500/30",
+  legendary: "border-amber-400/40",
+};
+const rarityText: Record<string, string> = {
+  common: "text-zinc-400",
+  uncommon: "text-green-400",
+  rare: "text-blue-400",
+  epic: "text-purple-400",
+  legendary: "text-amber-400",
 };
 
 export default function ProfilePage() {
@@ -182,6 +206,11 @@ export default function ProfilePage() {
                       <p className="text-sm text-muted">@{profile.username} · {profile.email}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <Badge variant="accent">Rank #{profile.rank}</Badge>
+                        {profile.level && (
+                          <Badge variant="info" className="text-xs">
+                            Lv.{profile.level.level} {profile.level.title}
+                          </Badge>
+                        )}
                         <span className="text-xs text-muted flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           Joined {formatDate(profile.createdAt)}
@@ -205,6 +234,7 @@ export default function ProfilePage() {
                       { icon: Target, value: profile.challengesCompleted, label: "Challenges", color: "text-accent-light" },
                       { icon: Gamepad2, value: profile.gamesPlayed, label: "Games", color: "text-success" },
                       { icon: Flame, value: `${profile.streak}d`, label: "Streak", color: "text-accent-hot" },
+                      { icon: Trophy, value: `${profile.bestStreak || 0}d`, label: "Best Streak", color: "text-amber-400" },
                     ].map((stat) => {
                       const Icon = stat.icon;
                       return (
@@ -280,24 +310,34 @@ export default function ProfilePage() {
                     <div className="space-y-2">
                       {profile.achievements.map((achievement) => {
                         const Icon = iconMap[achievement.icon] || Star;
+                        const rarity = achievement.rarity || "common";
                         return (
                           <div
                             key={achievement.id}
                             className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                               achievement.unlocked
-                                ? "bg-bg-elevated/60 border-border"
+                                ? `bg-bg-elevated/60 ${rarityBorder[rarity] || "border-border"}`
                                 : "bg-bg-elevated/20 border-border/50 opacity-40"
                             }`}
                           >
                             <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
                               achievement.unlocked ? "bg-accent-muted" : "bg-bg-elevated"
                             }`}>
-                              <Icon className={`w-4 h-4 ${achievement.unlocked ? `text-${achievement.color}` : "text-muted"}`} />
+                              {achievement.unlocked ? (
+                                <Icon className={`w-4 h-4 ${rarityText[rarity] || "text-accent"}`} />
+                              ) : (
+                                <Lock className="w-4 h-4 text-muted" />
+                              )}
                             </div>
                             <div className="min-w-0">
-                              <p className={`text-sm font-medium ${achievement.unlocked ? "" : "text-muted"}`}>
-                                {achievement.title}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className={`text-sm font-medium ${achievement.unlocked ? "" : "text-muted"}`}>
+                                  {achievement.title}
+                                </p>
+                                <span className={`text-[9px] uppercase font-bold ${rarityText[rarity] || "text-muted"}`}>
+                                  {rarity}
+                                </span>
+                              </div>
                               <p className="text-xs text-muted truncate">{achievement.description}</p>
                             </div>
                             {achievement.unlocked && (

@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-type BadgeVariant = "accent" | "success" | "danger" | "warning" | "neutral";
+type BadgeVariant = "accent" | "success" | "danger" | "warning" | "neutral" | "info";
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -16,6 +16,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   danger: "bg-danger-muted text-danger border-danger/20",
   warning: "bg-warning-muted text-warning border-warning/20",
   neutral: "bg-white/5 text-muted-light border-white/10",
+  info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
 };
 
 export function Badge({ children, variant = "accent", className }: BadgeProps) {

@@ -2,6 +2,7 @@
 
 A premium interactive coding-education platform built with **Next.js 15** (App Router), **React 19**, **TypeScript**, and **Tailwind CSS v4**.  
 Students solve 20 graded Python challenges in a mobile-responsive live IDE (Pyodide), receive AI mentor hints (Gemini), compete on a real-time leaderboard with XP & achievements, battle in **real-time coding duels**, build & share community challenges, and sharpen skills through **five diverse gamified experiences** — all wrapped in a polished, SaaS-grade UI with smooth animations.  
+Features a **15-level progression system** with unique titles, a **30-achievement unlock engine** with 5 rarity tiers, **daily & weekly coding challenges** with XP multipliers, a **progress dashboard** with GitHub-style activity calendar, and a **notification center** with real-time alerts.  
 Includes a full **Admin Panel** for user management, challenge CRUD, platform analytics, and dashboards. Supports **OAuth login** (Google & GitHub), **PWA** install, social features (follow/friends), and challenge discussions.
 
 ---
@@ -54,6 +55,11 @@ Includes a full **Admin Panel** for user management, challenge CRUD, platform an
 | Audit Log | `/admin/audit` | Track all admin actions — color-coded entries, refresh, CSV export |
 | Community Challenges | `/community` | Browse, create & play user-built challenges with likes, tag filters, difficulty levels, search & pagination |
 | Coding Duels | `/duels` | Real-time head-to-head Python coding battles with lobby, matchmaking, timer, live status, +50 XP to winner |
+| Daily Challenges | `/daily` | Daily (2x XP) and weekly (3x XP) coding challenges with countdown timers, deterministic selection, Pyodide editor, submit & verify |
+| Progress Dashboard | `/progress` | GitHub-style streak calendar (365 days), XP bar chart (30 days), XP breakdown, achievement grid with rarity filters, level progress bar, stats cards |
+| Notification Center | Navbar | Bell icon with unread count badge, dropdown panel, mark-all-read, auto-polling, notification types: achievements, level-ups, streaks, daily completions |
+| User Levels & Titles | Navbar / Profile | 15-level progression system (Newbie → Code God), unique colors & icons per level, XP progress bar, level-up notifications |
+| Achievement System | Profile / Progress | 30 achievements across 7 categories, 5 rarity tiers (common → legendary), auto-evaluation on XP events, Firestore persistence |
 | Social Features | `/leaderboard` | Follow/unfollow users, friends-only leaderboard filter, share achievements via Web Share API |
 | Challenge Discussion | `/ide` | Comment on completed challenges, like comments, threaded discussion panel |
 | OAuth Login | `/login`, `/signup` | Sign in with Google or GitHub (OAuth 2.0) alongside email/password |
@@ -126,6 +132,16 @@ coding_learning_platform/
 │   │   ├── layout.tsx
 │   │   ├── error.tsx           # Duels error boundary
 │   │   └── page.tsx            # Real-time coding duels — lobby, arena, results
+│   ├── daily/
+│   │   ├── layout.tsx
+│   │   ├── loading.tsx         # Skeleton loading state
+│   │   ├── error.tsx           # Daily error boundary
+│   │   └── page.tsx            # Daily & weekly challenges — editor, submit, countdown
+│   ├── progress/
+│   │   ├── layout.tsx
+│   │   ├── loading.tsx         # Skeleton loading state
+│   │   ├── error.tsx           # Progress error boundary
+│   │   └── page.tsx            # Progress dashboard — streak calendar, XP chart, achievements
 │   ├── offline/page.tsx        # PWA offline fallback page
 │   ├── gamified/
 │   │   ├── layout.tsx          # SEO metadata for game hub
@@ -189,13 +205,17 @@ coding_learning_platform/
 │       ├── duels/route.ts              # GET/POST — coding duels (create, join, submit, cancel)
 │       ├── social/
 │       │   └── follow/route.ts         # GET/POST — follow/unfollow users
+│       ├── notifications/route.ts   # GET/PATCH/DELETE — notification center (unread filter, mark read, delete)
+│       ├── daily/route.ts           # GET/POST — daily & weekly challenges (deterministic selection, submit, XP award)
+│       ├── progress/route.ts        # GET — full progress dashboard (streak, XP history, achievements, level)
 │       ├── leaderboard/
 │       │   ├── route.ts            # GET — global rankings sorted by XP
 │       │   ├── me/route.ts         # GET — current user stats + calculated rank
-│       │   └── xp/route.ts         # POST — award XP for challenges/games/streaks
+│       │   └── xp/route.ts         # POST — award XP + achievement evaluation + level-up checks
 │       └── mentorHint/route.ts     # POST — AI mentor hints (rate limited)
 ├── components/
-│   ├── Navbar.tsx              # Responsive nav with scroll blur, mobile menu, outside-click close, aria-current
+│   ├── Navbar.tsx              # Responsive nav with scroll blur, mobile menu, notification bell, level badge, outside-click close
+│   ├── NotificationBell.tsx    # Notification dropdown — bell icon, unread count, mark-all-read, auto-polling
 │   ├── AuthGuard.tsx           # Protected route wrapper
 │   ├── AdminGuard.tsx          # Admin-only route wrapper (checks /api/admin/check)
 │   ├── ThemeToggle.tsx         # Dark/light theme toggle button
@@ -205,7 +225,7 @@ coding_learning_platform/
 │       ├── Button.tsx           # 5 variants, 3 sizes, loading state
 │       ├── Input.tsx            # Label, error display with role="alert", auto-id
 │       ├── Card.tsx             # Card + CardHeader + CardContent
-│       ├── Badge.tsx            # 5 color variants
+│       ├── Badge.tsx            # 6 color variants (accent, success, danger, warning, neutral, info)
 │       ├── AnimatedSection.tsx  # Framer Motion viewport animations + reduced-motion support
 │       ├── StatusMessage.tsx    # Info/success/error messages
 │       ├── Toast.tsx            # Toast notification system (success/error/warning/info)
@@ -221,11 +241,13 @@ coding_learning_platform/
 │   ├── firebase.ts             # Firebase Admin singleton
 │   ├── session.ts              # Client-side token helpers + applyAuthHeaders()
 │   ├── gemini.ts               # Gemini API prompt builder
-│   ├── store.ts                # Zustand auth store
+│   ├── store.ts                # Zustand auth store (with xp field for level badge)
 │   ├── themeStore.ts           # Zustand theme store (dark/light persistence)
+│   ├── levels.ts               # 15-level progression system — computeLevel(), checkLevelUp()
+│   ├── achievements.ts         # 30 achievements engine — evaluateAchievements(), 5 rarity tiers
 │   ├── rateLimit.ts            # In-memory sliding-window rate limiter
 │   ├── auditLog.ts             # Firestore audit log writer & reader
-│   ├── types.ts                # Shared TypeScript types & interfaces
+│   ├── types.ts                # Shared TypeScript types & interfaces (UserLevel, Notification, DailyChallenge, ProgressStats, etc.)
 │   └── utils.ts                # cn() helper (clsx + tailwind-merge)
 ├── middleware.ts                # Edge middleware — security headers + route protection
 ├── __tests__/                   # Jest test suites
@@ -250,12 +272,12 @@ coding_learning_platform/
 
 ---
 
-## XP & Leaderboard System
+## XP, Levels & Leaderboard System
 
-Users earn XP through challenges, games, and streaks. All data is stored in Firestore and rankings update in real time.
+Users earn XP through challenges, games, duels, daily challenges, and streaks. All data is stored in Firestore and rankings update in real time.
 
 | Action | XP Awarded |
-|--------|-----------|
+|--------|------------|
 | Complete a challenge | +100 XP |
 | First-try challenge success | +150 XP |
 | Repeat a completed challenge | +25 XP (25%) |
@@ -263,8 +285,52 @@ Users earn XP through challenges, games, and streaks. All data is stored in Fire
 | Perfect game score (no mistakes) | +100 XP |
 | Win a coding duel | +50 XP |
 | Daily login streak | +25 XP |
+| Daily challenge (correct) | Base XP × 2 |
+| Weekly challenge (correct) | Base XP × 3 |
 
-**Achievements** unlock dynamically based on your stats (XP, challenges completed, streak, games played, rank).
+### User Levels (15 Tiers)
+
+| Level | Title | XP Required |
+|-------|-------|------------|
+| 1 | Newbie | 0 |
+| 2 | Beginner | 100 |
+| 3 | Apprentice | 300 |
+| 4 | Coder | 600 |
+| 5 | Developer | 1,000 |
+| 6 | Engineer | 1,500 |
+| 7 | Specialist | 2,200 |
+| 8 | Expert | 3,000 |
+| 9 | Master | 4,000 |
+| 10 | Grand Master | 5,500 |
+| 11 | Legend | 7,500 |
+| 12 | Mythic | 10,000 |
+| 13 | Transcendent | 15,000 |
+| 14 | Immortal | 25,000 |
+| 15 | Code God | 50,000 |
+
+Level-up events trigger an in-app notification and are displayed in the progress dashboard milestones.
+
+### Achievements (30 Total, 5 Rarity Tiers)
+
+Achievements unlock automatically when XP events are processed. Stored persistently in Firestore.
+
+| Rarity | Color | Count | Example |
+|--------|-------|-------|---------|
+| Common | Zinc | 6 | First Steps (earn 10 XP) |
+| Uncommon | Green | 8 | Challenge Accepted (complete 5 challenges) |
+| Rare | Blue | 7 | Hot Streak (7-day streak) |
+| Epic | Purple | 6 | Top 10 (reach leaderboard top 10) |
+| Legendary | Amber | 3 | Immortal Flame (100-day streak) |
+
+Categories: **XP**, **Challenge**, **Streak**, **Game**, **Social/Duels**, **Rank**, **Special**.
+
+### Daily & Weekly Challenges
+
+- **14 daily challenges** rotated deterministically by date (hash-based selection)
+- **4 weekly challenges** (harder — Merge Sort, BST, LRU Cache, Graph BFS)
+- Daily challenges award **2× XP multiplier**, weekly challenges award **3× XP**
+- Each challenge can only be completed once per rotation period
+- Completion count tracked globally across all users
 
 ---
 
@@ -371,6 +437,9 @@ npm start
 | `GET/POST/PATCH` | `/api/community/challenges` | Community-built challenges (browse, create, like) |
 | `GET/POST` | `/api/duels` | Coding duels (lobby list, create, join, submit, cancel) (rate limited: 10/min) |
 | `GET/POST` | `/api/social/follow` | Follow/unfollow users, get follower counts |
+| `GET/PATCH/DELETE` | `/api/notifications` | Notification center — list (with unread filter), mark read, delete |
+| `GET/POST` | `/api/daily` | Daily & weekly challenges — get today's challenges, submit solution |
+| `GET` | `/api/progress` | Full progress dashboard — streak calendar, XP history, achievements, level, breakdown |
 
 ---
 
@@ -400,6 +469,10 @@ npm start
   - Challenge submissions (20/min)
   - Comments (10/min)
   - Duels (10/min)
+  - Notifications (60/min)
+  - Daily challenges (30/min GET, 10/min POST)
+  - Progress dashboard (30/min)
+  - Profile (30/min)
 - **Input sanitization** — `sanitizeText()` strips HTML tags and control characters from user input
 - XP endpoint validates action types and prevents duplicate full-XP awards for the same challenge
 - Admin access controlled via `ADMIN_EMAILS` env variable or Firestore `role: "admin"` field
@@ -467,6 +540,7 @@ Admin users see a red **Admin** link in the navbar. The admin layout uses a dist
 
 | Date | Change |
 |------|--------|
+| 2026-02-23 | **Progression & Engagement Update** — 15-level progression system (Newbie → Code God) with unique colors & icons, 30-achievement unlock engine (5 rarity tiers, 7 categories, auto-evaluation, Firestore persistence), notification center (bell icon, unread badge, polling, mark-all-read), daily & weekly coding challenges (14 daily + 4 weekly, 2×/3× XP multipliers, deterministic rotation, Pyodide editor), progress dashboard (GitHub-style 365-day streak calendar, 30-day XP bar chart, XP breakdown, filterable achievement grid, level progress bar, milestone feed), level badge in navbar, rarity-colored achievements on profile, session enriched with XP, Badge component extended with `info` variant |
 | 2026-02-23 | **Social & Multiplayer Sprint** — Real-time coding duels (lobby, arena, timer, +50 XP), community challenge builder, challenge discussion/comments, social features (follow/friends, share achievements), OAuth login (Google & GitHub), PWA support (manifest, service worker, offline caching), mobile-responsive IDE (collapsible sidebar, touch-friendly editor) |
 | 2026-02-22 | **Major Upgrade** — User settings (change password, delete account), code history viewer, learning paths, category/tag filter in IDE, CSV exports on admin pages, dark/light theme toggle, rate limiting on auth endpoints, audit logging, server-side challenge submissions, user profile page, navbar enhancements |
 | 2026-02-21 | **Hardening & Polish Sprint** — Security headers middleware, route protection, JWT secret enforcement, rate limiting on 4 more endpoints (hints, submit, comments, duels), strong password policy, input sanitization, toast notifications (replacing all `alert()` calls), route-specific error boundaries (IDE, duels, admin, profile, community), shared `lib/types.ts` (20+ interfaces), `usePyodide` shared hook, SEO sitemap + robots.txt, per-game metadata, admin noindex, PWA offline page, skip-to-content link, aria labels & live regions, reduced-motion support, `next/image` optimization, API caching headers, `Pagination`/`Skeleton`/`Toast`/`UserAvatar` UI components, fixed Jest setup (`setupFilesAfterEnv` typo + missing devDependencies) |

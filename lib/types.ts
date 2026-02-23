@@ -9,6 +9,8 @@ export interface Achievement {
   icon: string;
   unlocked: boolean;
   color: string;
+  rarity?: string;
+  category?: string;
 }
 
 export interface ProfileSubmission {
@@ -36,10 +38,13 @@ export interface ProfileData {
   completedChallenges: string[];
   gamesPlayed: number;
   streak: number;
+  bestStreak: number;
   lastActiveDate: string;
   createdAt: string;
   recentSubmissions: ProfileSubmission[];
   achievements: Achievement[];
+  level?: UserLevel;
+  achievementStats?: { total: number; unlocked: number; byRarity: Record<string, { total: number; unlocked: number }> };
 }
 
 export interface LeaderboardEntry {
@@ -268,4 +273,92 @@ export interface AuditEntry {
   targetId?: string;
   timestamp: string;
   details?: Record<string, unknown>;
+}
+
+// ─── Levels & Titles ──────────────────────────────────────────────────
+
+export interface UserLevel {
+  level: number;
+  title: string;
+  xpRequired: number;
+  xpForNext: number;
+  progress: number; // 0-100 within current level
+  color: string;
+  icon: string;
+}
+
+// ─── Notifications ─────────────────────────────────────────────────────
+
+export type NotificationType =
+  | "achievement_unlock"
+  | "level_up"
+  | "duel_invite"
+  | "duel_result"
+  | "streak_milestone"
+  | "daily_challenge"
+  | "follow"
+  | "comment"
+  | "system";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  icon?: string;
+  color?: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+// ─── Daily / Weekly Challenges ─────────────────────────────────────────
+
+export interface DailyChallenge {
+  id: string;
+  challengeId: string;
+  title: string;
+  description: string;
+  difficulty: number;
+  starterCode: string;
+  expectedOutput: string;
+  type: "daily" | "weekly";
+  xpMultiplier: number;
+  activeDate: string;      // YYYY-MM-DD
+  expiresAt: string;       // ISO date
+  completedBy: number;     // count of users who completed it
+  completed: boolean;      // current user completed?
+}
+
+// ─── Progress Dashboard ────────────────────────────────────────────────
+
+export interface StreakDay {
+  date: string;     // YYYY-MM-DD
+  active: boolean;
+  xpEarned: number;
+}
+
+export interface XpHistoryPoint {
+  date: string;
+  xp: number;
+}
+
+export interface ProgressStats {
+  level: UserLevel;
+  streakCalendar: StreakDay[];       // last 365 days
+  xpHistory: XpHistoryPoint[];      // last 30 days
+  xpBreakdown: {
+    challenges: number;
+    games: number;
+    duels: number;
+    daily: number;
+    other: number;
+  };
+  completionRate: number;            // % of attempted challenges passed
+  totalTimeSpent: number;            // minutes (estimated)
+  bestStreak: number;
+  currentStreak: number;
+  weeklyXp: number;
+  monthlyXp: number;
+  recentMilestones: Notification[];  // last 5 achievement/level notifications
 }

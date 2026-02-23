@@ -24,20 +24,27 @@ import {
   Settings,
   ChevronDown,
   Shield,
+  TrendingUp,
+  CalendarCheck,
+  Star,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { UserAvatar } from "@/components/ui";
+import { NotificationBell } from "@/components/NotificationBell";
+import { UserAvatar, Badge } from "@/components/ui";
+import { computeLevel } from "@/lib/levels";
 
 const navLinks = [
   { href: "/ide", label: "IDE", icon: Terminal },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/gamified", label: "Game Lab", icon: Gamepad2 },
   { href: "/duels", label: "Duels", icon: Swords },
+  { href: "/daily", label: "Daily", icon: CalendarCheck },
   { href: "/community", label: "Community", icon: Users },
 ];
 
 const userMenuLinks = [
   { href: "/profile", label: "Profile", icon: User },
+  { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/history", label: "History", icon: History },
   { href: "/paths", label: "Paths", icon: Map },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -141,6 +148,7 @@ export function Navbar() {
           {/* Auth Controls */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle />
+            {isAuth && <NotificationBell />}
             {isLoading ? (
               <div className="w-20 h-8 bg-bg-elevated rounded-lg animate-pulse" />
             ) : isAuth ? (
@@ -153,6 +161,7 @@ export function Navbar() {
                 >
                   <UserAvatar email={user?.email} name={user?.fullName || user?.username} size="sm" className="rounded-full" />
                   <span className="text-sm text-muted-light font-medium hidden lg:inline">{user?.username}</span>
+                  {user?.xp != null && (() => { const lvl = computeLevel(user.xp || 0); return <Badge variant="accent" className="text-[9px] hidden lg:inline-flex">{lvl.title}</Badge>; })()}
                   <ChevronDown className={cn("w-3.5 h-3.5 text-muted transition-transform", userMenuOpen && "rotate-180")} />
                 </button>
 

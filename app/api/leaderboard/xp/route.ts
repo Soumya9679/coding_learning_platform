@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
+import { evaluateAchievements } from "@/lib/achievements";
+import { checkLevelUp } from "@/lib/levels";
 
 // Valid XP actions and their point values
 const XP_ACTIONS: Record<string, number> = {
@@ -88,18 +90,59 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       updatePayload.lastActiveDate = today;
     }
 
+    // Track active days for streak calendar
+    updatePayload.activeDays = admin.firestore.FieldValue.arrayUnion(today);
+
+    // Track best streak
+    const currentStreak = userData.streak || 0;
+    const bestStreak = userData.bestStreak || 0;
+    if (currentStreak + 1 > bestStreak) {
+      updatePayload.bestStreak = currentStreak + 1;
+    }
+
+    const oldXp = userData.xp || 0;
     await userRef.update(updatePayload);
 
     // Read back updated stats
     const updatedDoc = await userRef.get();
     const updatedData = updatedDoc.data() || {};
+    const newXp = updatedData.xp || 0;
 
-    return NextResponse.json({
-      message: `+${xpAmount} XP`,
-      xp: updatedData.xp || 0,
+    // Check for level up
+    const levelUp = checkLevelUp(oldXp, newXp);
+    if (levelUp) {
+      await db.collection("users").doc(user.uid).collection("notifications").add({
+        type: "level_up",
+        title: "Level Up!",
+        message: `You reached Level ${levelUp.level} — ${levelUp.title}!`,
+        icon: levelUp.icon,
+        color: levelUp.color.replace("text-", ""),
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Evaluate achievements (non-blocking)
+    evaluateAchievements(user.uid, {
+      xp: newXp,
       challengesCompleted: updatedData.challengesCompleted || 0,
       gamesPlayed: updatedData.gamesPlayed || 0,
       streak: updatedData.streak || 0,
+      rank: 0,
+      duelsWon: updatedData.duelsWon || 0,
+      duelsPlayed: updatedData.duelsPlayed || 0,
+      commentsPosted: 0,
+      followersCount: 0,
+      daysActive: (updatedData.activeDays || []).length,
+    }).catch((err) => console.error("Achievement eval error:", err));
+
+    return NextResponse.json({
+      message: `+${xpAmount} XP`,
+      xp: newXp,
+      challengesCompleted: updatedData.challengesCompleted || 0,
+      gamesPlayed: updatedData.gamesPlayed || 0,
+      streak: updatedData.streak || 0,
+      levelUp: levelUp ? { level: levelUp.level, title: levelUp.title } : null,
     });
   } catch (error) {
     console.error("XP update error:", error);
