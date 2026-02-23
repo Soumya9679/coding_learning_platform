@@ -178,6 +178,37 @@ export interface ActiveDuel {
   opponentCode: string;
 }
 
+// ─── Real-time Duel Extras ─────────────────────────────────────────────
+
+export interface DuelPresence {
+  uid: string;
+  username: string;
+  online: boolean;
+  typing: boolean;
+  lineCount: number;
+  lastHeartbeat: string;
+  connected: boolean;
+}
+
+export interface DuelChatMessage {
+  id: string;
+  uid: string;
+  username: string;
+  text: string;
+  createdAt: string;
+}
+
+export type DuelStreamEvent =
+  | { type: "duel_state"; data: ActiveDuel }
+  | { type: "presence"; data: Record<string, DuelPresence> }
+  | { type: "chat"; data: DuelChatMessage[] }
+  | { type: "heartbeat"; data: { ts: string } }
+  | { type: "error"; data: { message: string } };
+
+export type LobbyStreamEvent =
+  | { type: "lobby_update"; data: LobbyDuel[] }
+  | { type: "heartbeat"; data: { ts: string } };
+
 // ─── Learning Paths ────────────────────────────────────────────────────
 
 export interface PathChallenge {
