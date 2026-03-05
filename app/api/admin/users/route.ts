@@ -10,7 +10,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   try {
     const { searchParams } = new URL(request.url);
-    const search = (searchParams.get("search") || "").trim().toLowerCase();
+    const search = (searchParams.get("search") || "").trim().slice(0, 100).toLowerCase();
     const sortBy = searchParams.get("sortBy") || "xp";
     const order = searchParams.get("order") || "desc";
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));

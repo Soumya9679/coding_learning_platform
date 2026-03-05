@@ -14,6 +14,7 @@ const config: Config = {
   },
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/", "<rootDir>/e2e/"],
   transformIgnorePatterns: ["node_modules/(?!(uncrypto|@upstash)/)"  ],
+  forceExit: true,
 };
 
 export default createJestConfig(config);

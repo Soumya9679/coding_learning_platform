@@ -16,7 +16,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const url = new URL(request.url);
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
     const pageSize = Math.min(50, Math.max(1, parseInt(url.searchParams.get("pageSize") || "25")));
-    const search = (url.searchParams.get("search") || "").trim().toLowerCase();
+    const search = (url.searchParams.get("search") || "").trim().slice(0, 100).toLowerCase();
 
     // Fetch a generous amount to support search + pagination
     const fetchLimit = search ? 200 : page * pageSize + pageSize;

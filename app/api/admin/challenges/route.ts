@@ -3,7 +3,7 @@ import { db } from "@/lib/firebase";
 import { authenticateAdmin } from "@/lib/admin";
 import { writeAuditLog } from "@/lib/auditLog";
 
-export interface ChallengeDoc {
+interface ChallengeDoc {
   id: string;
   tag: string;
   difficulty: number;

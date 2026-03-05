@@ -17,7 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1"));
     const pageSize = Math.min(20, Math.max(1, parseInt(request.nextUrl.searchParams.get("pageSize") || "12")));
-    const search = (request.nextUrl.searchParams.get("search") || "").trim().toLowerCase();
+    const search = (request.nextUrl.searchParams.get("search") || "").trim().slice(0, 100).toLowerCase();
 
     let query: FirebaseFirestore.Query = db.collection("community_challenges");
 

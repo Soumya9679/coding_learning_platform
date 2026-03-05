@@ -7,8 +7,9 @@ import { checkLevelUp } from "@/lib/levels";
 import { verifyXpToken } from "@/lib/xpToken";
 import { xpClaimSchema, parseBody } from "@/lib/validators";
 
-// Valid XP actions and their point values
-export const XP_ACTIONS: Record<string, number> = {
+// Valid XP actions and their point values (not exported — Next.js route files
+// may only export HTTP method handlers and the special `config` / `dynamic` etc.)
+const XP_ACTIONS: Record<string, number> = {
   challenge_complete: 100,
   challenge_first_try: 150,
   game_complete: 50,
