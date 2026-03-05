@@ -21,8 +21,11 @@ Includes a full **Admin Panel** for user management, challenge CRUD, platform an
 | AI Mentor | Google Gemini API |
 | Auth | JWT + bcryptjs (httpOnly cookies), OAuth 2.0 (Google, GitHub) |
 | Database | Firebase Admin SDK (Firestore) |
-| Testing | Jest 30, React Testing Library, jest-dom |
-| XP & Leaderboard | Dynamic Firestore-backed ranking system |
+| Validation | Zod (request schema validation on all API routes) |
+| Rate Limiting | Upstash Redis (production) + in-memory fallback (dev) |
+| Error Tracking | Sentry (client, server, edge) |
+| Testing | Jest 30, React Testing Library, Playwright (E2E) |
+| XP & Leaderboard | Dynamic Firestore-backed ranking system with HMAC-signed XP proof tokens |
 | SEO | Dynamic sitemap, robots.txt (via Next.js Metadata API) |
 | Fonts | Space Grotesk + JetBrains Mono (via `next/font`) |
 
@@ -234,7 +237,9 @@ coding_learning_platform/
 │       ├── UserAvatar.tsx       # Gravatar-backed user avatar (uses next/image)
 │       └── index.ts             # Barrel export
 ├── hooks/
-│   └── usePyodide.ts           # Shared Pyodide loading hook (script injection + caching)
+│   ├── usePyodide.ts           # Persistent singleton Pyodide worker (warm worker pattern, pre-warmed on mount)
+│   ├── useDuelStream.ts        # SSE hook for real-time duel arena updates
+│   └── useLobbyStream.ts       # SSE hook for real-time duel lobby updates
 ├── lib/
 │   ├── auth.ts                 # JWT, bcrypt, session helpers, password policy, sanitizeText()
 │   ├── admin.ts                # Admin authentication (ADMIN_EMAILS env + Firestore role)
@@ -245,17 +250,29 @@ coding_learning_platform/
 │   ├── themeStore.ts           # Zustand theme store (dark/light persistence)
 │   ├── levels.ts               # 15-level progression system — computeLevel(), checkLevelUp()
 │   ├── achievements.ts         # 30 achievements engine — evaluateAchievements(), 5 rarity tiers
-│   ├── rateLimit.ts            # In-memory sliding-window rate limiter
+│   ├── rateLimit.ts            # Upstash Redis rate limiter + in-memory fallback (sync & async APIs)
+│   ├── validators.ts           # Zod schemas for all API endpoints + parseBody() helper
+│   ├── xpToken.ts              # HMAC-signed single-use XP proof tokens (anti-cheat)
+│   ├── duelStore.ts            # Zustand store for real-time duel state
 │   ├── auditLog.ts             # Firestore audit log writer & reader
 │   ├── types.ts                # Shared TypeScript types & interfaces (UserLevel, Notification, DailyChallenge, ProgressStats, etc.)
 │   └── utils.ts                # cn() helper (clsx + tailwind-merge)
 ├── middleware.ts                # Edge middleware — security headers + route protection
-├── __tests__/                   # Jest test suites
+├── __tests__/                   # Jest test suites (9 suites, 109 tests)
+│   ├── api/auth/
+│   │   └── login.test.ts       # Login API integration tests
 │   ├── components/
-│   │   └── Badge.test.tsx
+│   │   ├── AuthGuard.test.tsx   # Auth guard component tests
+│   │   └── Badge.test.tsx       # Badge component tests
 │   └── lib/
-│       ├── rateLimit.test.ts
-│       └── utils.test.ts
+│       ├── achievements.test.ts # Achievement definitions & check functions
+│       ├── auth.test.ts         # JWT & session helper tests
+│       ├── levels.test.ts       # Level system (computeLevel, checkLevelUp)
+│       ├── rateLimit.test.ts    # Rate limiter (sync, async, getClientIp)
+│       ├── utils.test.ts        # Utility function tests
+│       └── validators.test.ts   # Zod schema validation tests (all endpoints)
+├── e2e/                         # Playwright E2E tests
+│   └── app.spec.ts              # Smoke tests (pages, auth flows, API health)
 ├── public/
 │   ├── favicon.ico             # PulsePy browser tab icon
 │   ├── manifest.json           # PWA web app manifest
@@ -263,11 +280,14 @@ coding_learning_platform/
 │   └── icons/                  # PWA app icons (192x192, 512x512)
 ├── jest.config.ts              # Jest configuration (next/jest + jsdom)
 ├── jest.setup.ts               # Jest setup — @testing-library/jest-dom matchers
+├── playwright.config.ts        # Playwright E2E config (Chromium, webServer auto-start)
+├── sentry.client.config.ts     # Sentry client-side init (replays, error filtering)
+├── sentry.server.config.ts     # Sentry server-side init
+├── sentry.edge.config.ts       # Sentry edge runtime init
 ├── tsconfig.json
-├── next.config.ts              # Security headers, image optimization, API caching
+├── next.config.ts              # Security headers, image optimization, API caching, Sentry integration
 ├── postcss.config.mjs
-├── package.json
-└── .env.local.example
+└── package.json
 ```
 
 ---
@@ -360,14 +380,19 @@ Edit `.env.local` with your values:
 |----------|----------|-------------|
 | `FIREBASE_SERVICE_ACCOUNT` | **Yes** | Firebase service-account JSON (stringified) |
 | `GEMINI_API_KEY` | **Yes** | Google Generative Language API key |
-| `JWT_SECRET` | **Yes (prod)** | Random string for signing JWTs — **required in production**, dev uses fallback |
+| `JWT_SECRET` | **Yes (prod)** | Random string for signing JWTs & XP tokens — **required in production**, dev uses fallback |
 | `GEMINI_MODEL` | Optional | Gemini model name (default: `gemini-2.5-flash`) |
 | `ADMIN_EMAILS` | Optional | Comma-separated admin emails (e.g. `admin@example.com`) |
 | `GOOGLE_CLIENT_ID` | Optional | Google OAuth 2.0 client ID (for Google login) |
 | `GOOGLE_CLIENT_SECRET` | Optional | Google OAuth 2.0 client secret |
 | `GITHUB_CLIENT_ID` | Optional | GitHub OAuth App client ID (for GitHub login) |
 | `GITHUB_CLIENT_SECRET` | Optional | GitHub OAuth App client secret |
-| `NEXT_PUBLIC_BASE_URL` | Optional | App base URL for OAuth callbacks (default: `http://localhost:3000`) |
+| `UPSTASH_REDIS_REST_URL` | Optional | Upstash Redis URL for distributed rate limiting (falls back to in-memory) |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional | Upstash Redis auth token |
+| `NEXT_PUBLIC_SENTRY_DSN` | Optional | Sentry DSN for error tracking (disabled if unset) |
+| `SENTRY_ORG` | Optional | Sentry organization slug (for source map uploads) |
+| `SENTRY_PROJECT` | Optional | Sentry project slug |
+| `SENTRY_AUTH_TOKEN` | Optional | Sentry auth token (for source map uploads) |
 | `NEXT_PUBLIC_SITE_URL` | Optional | Canonical site URL for sitemap/robots (default: `https://pulsepy.dev`) |
 
 ### 3. Run the dev server
@@ -381,9 +406,11 @@ Open [http://localhost:3000](http://localhost:3000).
 ### 4. Run tests
 
 ```bash
-npm test                # run all tests
+npm test                # run all Jest tests (109 tests, 9 suites)
 npm run test:watch      # watch mode
 npm run test:coverage   # with coverage report
+npm run test:e2e        # run Playwright E2E tests (requires: npx playwright install)
+npm run test:e2e:ui     # Playwright E2E with interactive UI
 ```
 
 ### 5. Build for production
@@ -440,6 +467,11 @@ npm start
 | `GET/PATCH/DELETE` | `/api/notifications` | Notification center — list (with unread filter), mark read, delete |
 | `GET/POST` | `/api/daily` | Daily & weekly challenges — get today's challenges, submit solution |
 | `GET` | `/api/progress` | Full progress dashboard — streak calendar, XP history, achievements, level, breakdown |
+| `GET/POST/PATCH/DELETE` | `/api/admin/pools` | Admin CRUD for challenge pools (daily, weekly, duel) + seed defaults |
+| `GET` | `/api/duels/stream` | SSE stream for real-time duel arena updates |
+| `GET` | `/api/duels/lobby-stream` | SSE stream for real-time duel lobby updates |
+| `POST` | `/api/duels/presence` | Update player presence in active duel |
+| `POST` | `/api/duels/chat` | Send chat message in active duel |
 
 ---
 
@@ -463,7 +495,9 @@ npm start
 - Sessions use **JWT** stored in `httpOnly`, `secure`, `sameSite=lax` cookies
 - **JWT_SECRET** — Required in production; app throws on startup if missing
 - All protected API routes validate auth via `authenticateFromRequest()` middleware
-- **Rate limiting** — Sliding-window in-memory limiter on:
+- **XP proof tokens** — HMAC-signed, single-use tokens prevent XP manipulation; nonces stored in Firestore
+- **Zod request validation** — All API endpoints validate request bodies with Zod schemas; malformed requests rejected with 400
+- **Rate limiting** — Upstash Redis sliding-window limiter (production) with in-memory fallback (dev) on:
   - Auth endpoints (10 req/15min login, 5/15min signup, 5/15min forgot-password)
   - AI mentor hints (5/min)
   - Challenge submissions (20/min)
@@ -481,6 +515,8 @@ npm start
 - **Audit logging** — All admin write actions (user update/delete, challenge CRUD) recorded in Firestore `audit_logs` collection
 - Account deletion requires password re-confirmation before executing
 - **OAuth 2.0** — Google and GitHub login with PKCE state cookies, automatic user linking by email
+- **Error tracking** — Sentry integration (client, server, edge) with source maps, replay, and error filtering
+- **Firestore challenge pools** — Daily, weekly, and duel challenges served from admin-managed Firestore pools with 10-min cache and hardcoded fallback
 - **PWA** — Service worker with cache-first strategy for static assets, network-first for pages, offline fallback
 
 ---
@@ -511,7 +547,7 @@ npm start
 - **API caching** — `Cache-Control` headers on static API routes (leaderboard: 10s, paths: 60s)
 - **Static asset caching** — Aggressive cache (`max-age=31536000, immutable`) for `/_next/static/`
 - **Code splitting** — Monaco Editor loaded via `next/dynamic` to avoid blocking initial paint
-- **Shared Pyodide hook** — Singleton pattern prevents re-downloading the ~15MB Pyodide runtime
+- **Persistent Pyodide worker** — Singleton warm worker pattern pre-warms on mount, reuses across calls, destroys only on timeout; eliminates ~10MB re-download per execution
 
 ---
 
@@ -540,6 +576,7 @@ Admin users see a red **Admin** link in the navbar. The admin layout uses a dist
 
 | Date | Change |
 |------|--------|
+| 2026-03-05 | **Tier 1 Production Hardening** — Persistent Pyodide worker (singleton warm worker pattern), HMAC-signed XP proof tokens (anti-cheat with Firestore nonce), Zod request validation on all API routes (20+ schemas), Upstash Redis rate limiting with in-memory fallback, Sentry error tracking (client/server/edge), Firestore-backed challenge pools (admin CRUD + seed + 10-min cache), expanded test suite (109 tests across 9 suites — levels, validators, achievements, rateLimit, auth, utils, components), Playwright E2E test setup (10 smoke tests), audit log types extended for pool operations |
 | 2026-02-23 | **Progression & Engagement Update** — 15-level progression system (Newbie → Code God) with unique colors & icons, 30-achievement unlock engine (5 rarity tiers, 7 categories, auto-evaluation, Firestore persistence), notification center (bell icon, unread badge, polling, mark-all-read), daily & weekly coding challenges (14 daily + 4 weekly, 2×/3× XP multipliers, deterministic rotation, Pyodide editor), progress dashboard (GitHub-style 365-day streak calendar, 30-day XP bar chart, XP breakdown, filterable achievement grid, level progress bar, milestone feed), level badge in navbar, rarity-colored achievements on profile, session enriched with XP, Badge component extended with `info` variant |
 | 2026-02-23 | **Social & Multiplayer Sprint** — Real-time coding duels (lobby, arena, timer, +50 XP), community challenge builder, challenge discussion/comments, social features (follow/friends, share achievements), OAuth login (Google & GitHub), PWA support (manifest, service worker, offline caching), mobile-responsive IDE (collapsible sidebar, touch-friendly editor) |
 | 2026-02-22 | **Major Upgrade** — User settings (change password, delete account), code history viewer, learning paths, category/tag filter in IDE, CSV exports on admin pages, dark/light theme toggle, rate limiting on auth endpoints, audit logging, server-side challenge submissions, user profile page, navbar enhancements |
