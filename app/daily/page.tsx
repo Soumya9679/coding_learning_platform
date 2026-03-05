@@ -152,52 +152,70 @@ export default function DailyPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-bg pt-24 pb-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          {/* ── Header ────────────────────────────────── */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <h1 className="text-3xl font-bold gradient-text mb-2">Daily Challenges</h1>
-            <p className="text-muted">Sharpen your Python skills every day for bonus XP</p>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+
+          {/* ── Hero Header with Gradient ─────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/10 via-bg-card to-purple-600/10 border border-border p-6 sm:p-8 mb-6"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold gradient-text mb-1">Daily Challenges</h1>
+                <p className="text-sm text-muted">Sharpen your Python skills every day for bonus XP</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg/60 border border-border text-xs">
+                  <Clock className="w-3.5 h-3.5 text-accent" />
+                  <span className="text-muted-light font-medium">{timeLeft} left</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg/60 border border-border text-xs">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-muted-light font-medium">{challenge.xpMultiplier}x XP</span>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
           {/* ── Tab Toggle ────────────────────────────── */}
           <div className="flex gap-2 mb-6">
             <button
               onClick={() => setActiveTab("daily")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 activeTab === "daily"
                   ? "bg-accent text-white shadow-lg shadow-accent/20"
                   : "bg-bg-card text-muted hover:text-white border border-border"
               }`}
             >
-              <Sun className="w-4 h-4" /> Daily Challenge
+              <Sun className="w-4 h-4" /> Daily
               {data.daily.completed && <CheckCircle2 className="w-3.5 h-3.5 text-green-300" />}
             </button>
             <button
               onClick={() => setActiveTab("weekly")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 activeTab === "weekly"
                   ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
                   : "bg-bg-card text-muted hover:text-white border border-border"
               }`}
             >
-              <CalendarCheck className="w-4 h-4" /> Weekly Challenge
+              <CalendarCheck className="w-4 h-4" /> Weekly
               {data.weekly.completed && <CheckCircle2 className="w-3.5 h-3.5 text-green-300" />}
             </button>
           </div>
 
-          {/* ── Main Layout ───────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Left Panel - Challenge Description */}
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-2 space-y-4"
-            >
-              {/* Challenge Info */}
-              <Card className={`p-5 border-l-4 ${activeTab === "daily" ? "border-l-accent" : "border-l-purple-500"}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex flex-wrap items-center gap-2">
+          {/* ── Challenge Info Banner ─────────────────── */}
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className={`p-5 border-l-4 ${activeTab === "daily" ? "border-l-accent" : "border-l-purple-500"}`}>
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <Badge variant={activeTab === "daily" ? "accent" : "info"} className="text-[10px] uppercase">
                       {challenge.type}
                     </Badge>
@@ -207,138 +225,128 @@ export default function DailyPage() {
                     >
                       {challenge.difficulty <= 1 ? "Easy" : challenge.difficulty === 2 ? "Medium" : "Hard"}
                     </Badge>
+                    <span className="text-xs text-muted">{challenge.completedBy} solved</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted">
-                    <Clock className="w-3 h-3" />
-                    {timeLeft}
-                  </div>
+                  <h2 className="text-lg font-bold mb-1.5">{challenge.title}</h2>
+                  <p className="text-sm text-muted-light leading-relaxed">{challenge.description}</p>
                 </div>
-
-                <h2 className="text-lg font-bold mb-2">{challenge.title}</h2>
-                <p className="text-sm text-muted-light leading-relaxed mb-4">{challenge.description}</p>
-
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1 text-accent font-bold">
-                    <Zap className="w-3.5 h-3.5" /> {challenge.xpMultiplier}x XP Multiplier
-                  </span>
-                  <span className="text-muted">{challenge.completedBy} solved</span>
-                </div>
-              </Card>
-
-              {/* Expected Output Hint */}
-              <Card className="p-4">
-                <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-accent" /> Expected Output
-                </h3>
-                <code className="text-xs bg-bg rounded-lg p-3 block font-mono text-green-400 whitespace-pre-wrap">
-                  {challenge.expectedOutput}
-                </code>
-              </Card>
-
-              {/* Level Up Notice */}
-              <AnimatePresence>
-                {submitResult?.levelUp && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                  >
-                    <Card className="p-4 border-amber-400/30 bg-amber-400/5">
-                      <div className="flex items-center gap-3">
-                        <Trophy className="w-8 h-8 text-amber-400" />
-                        <div>
-                          <p className="text-sm font-bold text-amber-400">Level Up!</p>
-                          <p className="text-xs text-muted">You reached {submitResult.levelUp.title}!</p>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Right Panel - Editor + Output */}
-            <div className="lg:col-span-3 space-y-4">
-              {/* Editor */}
-              <Card className="overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-elevated">
-                  <span className="text-xs font-medium text-muted">solution.py</span>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => { setCode(challenge.starterCode || ""); setOutput(""); setSubmitResult(null); }}
-                      className="text-xs gap-1"
-                    >
-                      <RotateCcw className="w-3 h-3" /> Reset
-                    </Button>
+                <div className="sm:w-56 flex-shrink-0">
+                  <div className="bg-bg rounded-xl p-3">
+                    <h3 className="text-xs font-semibold mb-1.5 flex items-center gap-1.5 text-accent">
+                      <Terminal className="w-3.5 h-3.5" /> Expected Output
+                    </h3>
+                    <code className="text-xs font-mono text-green-400 whitespace-pre-wrap block">
+                      {challenge.expectedOutput}
+                    </code>
                   </div>
                 </div>
-                <CodeEditor
-                  value={code}
-                  onChange={setCode}
-                  height="320px"
-                />
-              </Card>
+              </div>
+            </Card>
+          </motion.div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3">
+          {/* ── Editor + Output (Stacked) ─────────────── */}
+          <div className="space-y-4">
+            {/* Editor */}
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-elevated">
+                <span className="text-xs font-medium text-muted flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  solution.py
+                </span>
                 <Button
-                  variant="secondary"
-                  onClick={handleRun}
-                  disabled={running || !code.trim()}
-                  className="flex-1 gap-2"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setCode(challenge.starterCode || ""); setOutput(""); setSubmitResult(null); }}
+                  className="text-xs gap-1"
                 >
-                  {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                  {running ? "Running…" : "Run Code"}
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleSubmit}
-                  disabled={submitting || challenge.completed || !code.trim()}
-                  className="flex-1 gap-2"
-                >
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  {challenge.completed ? "Already Completed" : submitting ? "Checking…" : "Submit"}
+                  <RotateCcw className="w-3 h-3" /> Reset
                 </Button>
               </div>
+              <CodeEditor
+                value={code}
+                onChange={setCode}
+                height="350px"
+              />
+            </Card>
 
-              {/* Output / Result */}
-              <Card className="p-4">
-                <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-accent" /> Output
-                </h3>
-                <div className="bg-bg rounded-lg p-3 min-h-[80px] font-mono text-xs whitespace-pre-wrap">
-                  {submitResult ? (
-                    <div className="flex items-start gap-2">
-                      {submitResult.correct ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <span className="text-green-400 font-bold">Correct!</span>
-                            <span className="text-muted ml-2">+{submitResult.xpAwarded} XP earned</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <span className="text-red-400 font-bold">Incorrect</span>
-                            <span className="text-muted block mt-1">
-                              Your output doesn&apos;t match the expected result. Check your logic and try again.
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ) : output ? (
-                    <span className="text-muted-light">{output}</span>
-                  ) : (
-                    <span className="text-muted">Run or submit your code to see output…</span>
-                  )}
-                </div>
-              </Card>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                onClick={handleRun}
+                disabled={running || !code.trim()}
+                className="flex-1 gap-2"
+              >
+                {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                {running ? "Running..." : "Run Code"}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSubmit}
+                disabled={submitting || challenge.completed || !code.trim()}
+                className="flex-1 gap-2"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                {challenge.completed ? "Already Completed" : submitting ? "Checking..." : "Submit Solution"}
+              </Button>
             </div>
+
+            {/* Output / Result */}
+            <Card className="p-4">
+              <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-accent" /> Output
+              </h3>
+              <div className="bg-bg rounded-lg p-3 min-h-[80px] font-mono text-xs whitespace-pre-wrap">
+                {submitResult ? (
+                  <div className="flex items-start gap-2">
+                    {submitResult.correct ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-green-400 font-bold">Correct!</span>
+                          <span className="text-muted ml-2">+{submitResult.xpAwarded} XP earned</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="text-red-400 font-bold">Incorrect</span>
+                          <span className="text-muted block mt-1">
+                            Your output doesn&apos;t match the expected result. Check your logic and try again.
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : output ? (
+                  <span className="text-muted-light">{output}</span>
+                ) : (
+                  <span className="text-muted">Run or submit your code to see output...</span>
+                )}
+              </div>
+            </Card>
+
+            {/* Level Up Notice */}
+            <AnimatePresence>
+              {submitResult?.levelUp && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                >
+                  <Card className="p-4 border-amber-400/30 bg-amber-400/5">
+                    <div className="flex items-center gap-3">
+                      <Trophy className="w-8 h-8 text-amber-400" />
+                      <div>
+                        <p className="text-sm font-bold text-amber-400">Level Up!</p>
+                        <p className="text-xs text-muted">You reached {submitResult.levelUp.title}!</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

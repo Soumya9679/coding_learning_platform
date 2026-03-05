@@ -160,7 +160,6 @@ export function Navbar() {
                   className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-all"
                 >
                   <UserAvatar email={user?.email} name={user?.fullName || user?.username} size="sm" className="rounded-full" />
-                  <span className="text-sm text-muted-light font-medium hidden lg:inline">{user?.username}</span>
                   {user?.xp != null && (() => { const lvl = computeLevel(user.xp || 0); return <Badge variant="accent" className="text-[9px] hidden lg:inline-flex">{lvl.title}</Badge>; })()}
                   <ChevronDown className={cn("w-3.5 h-3.5 text-muted transition-transform", userMenuOpen && "rotate-180")} />
                 </button>
