@@ -18,14 +18,18 @@ export type AuditAction =
   | "challenge.seed"
   | "challenge.toggle_active"
   | "export.users"
-  | "export.analytics";
+  | "export.analytics"
+  | "pool.seed"
+  | "pool.add"
+  | "pool.update"
+  | "pool.delete";
 
 interface AuditLogEntry {
   action: AuditAction;
   actorUid: string;
   actorEmail: string;
   targetId?: string;
-  targetType?: "user" | "challenge";
+  targetType?: "user" | "challenge" | "pool";
   details?: Record<string, unknown>;
   timestamp: FirebaseFirestore.FieldValue;
 }
@@ -38,7 +42,7 @@ export async function writeAuditLog(
   actor: { uid: string; email: string },
   opts?: {
     targetId?: string;
-    targetType?: "user" | "challenge";
+    targetType?: "user" | "challenge" | "pool";
     details?: Record<string, unknown>;
   }
 ): Promise<void> {

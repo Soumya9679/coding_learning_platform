@@ -74,7 +74,7 @@ describe("POST /api/auth/login", () => {
     const res = await POST(createRequest({}));
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toMatch(/required/i);
+    expect(data.error).toMatch(/required|invalid|validation/i);
   });
 
   it("returns 400 when password is empty", async () => {

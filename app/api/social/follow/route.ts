@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { followSchema, parseBody } from "@/lib/validators";
 
 // POST /api/social/follow — follow or unfollow a user { targetUserId }
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -21,9 +22,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { targetUserId } = await request.json();
-    if (!targetUserId || targetUserId === session.uid) {
-      return NextResponse.json({ error: "Invalid target user" }, { status: 400 });
+    const raw = await request.json();
+    const parsed = parseBody(followSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { targetUserId } = parsed.data;
+    if (targetUserId === session.uid) {
+      return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
     }
 
     // Check target user exists

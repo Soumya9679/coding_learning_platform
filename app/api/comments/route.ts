@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
 import { authenticateFromRequest, sanitizeText } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { commentCreateSchema, parseBody } from "@/lib/validators";
 
 // GET /api/comments?challengeId=xxx — fetch comments for a challenge
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -64,16 +65,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const body = await request.json();
-    const { challengeId, text } = body;
-
-    if (!challengeId || !text?.trim()) {
-      return NextResponse.json({ error: "challengeId and text are required" }, { status: 400 });
-    }
-
-    if (text.trim().length > 2000) {
-      return NextResponse.json({ error: "Comment too long (max 2000 chars)" }, { status: 400 });
-    }
+    const raw = await request.json();
+    const parsed = parseBody(commentCreateSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { challengeId, text } = parsed.data;
 
     // Verify user has completed this challenge
     const userSnap = await db.collection("users").doc(session.uid).get();

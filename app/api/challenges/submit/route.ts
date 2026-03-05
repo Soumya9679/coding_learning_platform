@@ -3,19 +3,16 @@ import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { generateXpToken } from "@/lib/xpToken";
+import { challengeSubmitSchema, parseBody } from "@/lib/validators";
 
 /**
  * POST /api/challenges/submit
  * Validates a client-submitted challenge result.
  * Body: { challengeId, stdout, code }
  * Awards XP on first completion; reduced XP on repeat.
+ * Returns an xpToken so the client can claim XP via /api/leaderboard/xp.
  */
-
-interface SubmitBody {
-  challengeId?: string;
-  stdout?: string;
-  code?: string;
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -33,15 +30,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const body: SubmitBody = await request.json();
-    const { challengeId = "", stdout = "", code = "" } = body;
-
-    if (!challengeId) {
-      return NextResponse.json({ error: "challengeId is required." }, { status: 400 });
-    }
-    if (!code.trim()) {
-      return NextResponse.json({ error: "Code cannot be empty." }, { status: 400 });
-    }
+    const raw = await request.json();
+    const parsed = parseBody(challengeSubmitSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { challengeId, stdout, code } = parsed.data;
 
     // Fetch challenge from Firestore
     const challengeDoc = await db.collection("challenges").doc(challengeId).get();
@@ -126,6 +118,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const updatedDoc = await userRef.get();
     const updatedData = updatedDoc.data() || {};
 
+    // Generate signed XP proof token for additional XP claim (achievements, level-ups)
+    const xpToken = generateXpToken({
+      uid: user.uid,
+      action: isRepeat ? "challenge_complete" : "challenge_first_try",
+      challengeId,
+      amount: xpAwarded,
+    });
+
     return NextResponse.json({
       passed: true,
       message: isRepeat ? `Correct! +${xpAwarded} XP (repeat)` : `Correct! +${xpAwarded} XP`,
@@ -134,6 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       xp: updatedData.xp || 0,
       challengesCompleted: updatedData.challengesCompleted || 0,
       streak: updatedData.streak || 0,
+      xpToken,
     });
   } catch (error) {
     console.error("Challenge submit error:", error);

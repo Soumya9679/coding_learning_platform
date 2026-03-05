@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, admin } from "@/lib/firebase";
 import { authenticateFromRequest } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { duelActionSchema, parseBody } from "@/lib/validators";
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -78,6 +79,27 @@ const DUEL_CHALLENGES = [
     difficulty: 3,
   },
 ];
+
+/* ─── Firestore Duel Pool (with in-memory fallback) ──────────────────── */
+let _duelPoolCache: typeof DUEL_CHALLENGES | null = null;
+let _duelPoolCacheTime = 0;
+const DUEL_POOL_TTL = 10 * 60 * 1000;
+
+async function getDuelPool(): Promise<typeof DUEL_CHALLENGES> {
+  if (_duelPoolCache && Date.now() - _duelPoolCacheTime < DUEL_POOL_TTL) return _duelPoolCache;
+  try {
+    const snap = await db.collection("duel_pool").get();
+    if (snap.empty) return DUEL_CHALLENGES;
+    _duelPoolCache = snap.docs.map((doc) => {
+      const d = doc.data();
+      return { title: d.title, description: d.description, expectedOutput: d.expectedOutput, starterCode: d.starterCode || "", difficulty: d.difficulty || 1 };
+    });
+    _duelPoolCacheTime = Date.now();
+    return _duelPoolCache;
+  } catch {
+    return DUEL_CHALLENGES;
+  }
+}
 
 // GET /api/duels — list duels (waiting or user's active/recent)
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -205,7 +227,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const body = await request.json();
+    const raw = await request.json();
+    const parsed = parseBody(duelActionSchema, raw);
+    if (parsed.error) return parsed.error;
+    const body = parsed.data;
     const { action } = body; // create | join | submit | cancel
 
     if (action === "create") {
@@ -219,8 +244,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ error: "You already have a duel waiting. Cancel it first." }, { status: 409 });
       }
 
-      // Pick a random challenge
-      const challenge = DUEL_CHALLENGES[Math.floor(Math.random() * DUEL_CHALLENGES.length)];
+      // Pick a random challenge from pool (Firestore → fallback)
+      const pool = await getDuelPool();
+      const challenge = pool[Math.floor(Math.random() * pool.length)];
       const timeLimit = body.timeLimit || 300; // default 5 minutes
 
       const ref = await db.collection("duels").add({

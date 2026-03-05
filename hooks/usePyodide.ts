@@ -40,53 +40,126 @@ export interface PyodideRunResult {
   error: string;
 }
 
+/* ─── Persistent Worker Pool ─────────────────────────────────────────── *
+ * Keep a singleton warm worker so we don't re-download ~10 MB of Pyodide
+ * on every run. The worker is initialised once and reused across calls.
+ * If it crashes or times out, we destroy it and spin a fresh one.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+let _warmWorker: Worker | null = null;
+let _workerReady = false;
+let _initPromise: Promise<void> | null = null;
+let _msgId = 0;
+
+/** Resolvers keyed by request ID so concurrent runs don't clash */
+const _pending = new Map<number, {
+  resolve: (r: PyodideRunResult) => void;
+  timer: ReturnType<typeof setTimeout>;
+}>();
+
+function spawnWorker(): Worker {
+  const w = new Worker("/pyodide-worker.js");
+
+  w.onmessage = (e) => {
+    const { type, id, result, error } = e.data;
+
+    if (type === "ready") {
+      _workerReady = true;
+      return;
+    }
+
+    const entry = _pending.get(id);
+    if (!entry) return;
+    _pending.delete(id);
+    clearTimeout(entry.timer);
+
+    if (type === "result") {
+      entry.resolve(result as PyodideRunResult);
+    } else if (type === "error") {
+      entry.resolve({ stdout: "", stderr: "", error: error || "Execution error" });
+    }
+  };
+
+  w.onerror = () => {
+    // Worker crashed — reject all pending, dispose, and let next call re-create
+    for (const [, entry] of _pending) {
+      clearTimeout(entry.timer);
+      entry.resolve({ stdout: "", stderr: "", error: "Worker crashed. Please try again." });
+    }
+    _pending.clear();
+    destroyWorker();
+  };
+
+  return w;
+}
+
+function destroyWorker() {
+  if (_warmWorker) {
+    try { _warmWorker.terminate(); } catch { /* ignore */ }
+  }
+  _warmWorker = null;
+  _workerReady = false;
+  _initPromise = null;
+}
+
+/** Get (or create) the singleton warm worker, wait until it's ready */
+function getWarmWorker(): Promise<Worker> {
+  if (_warmWorker && _workerReady) return Promise.resolve(_warmWorker);
+
+  if (!_initPromise) {
+    _warmWorker = spawnWorker();
+    _warmWorker.postMessage({ type: "init" });
+
+    _initPromise = new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        destroyWorker();
+        reject(new Error("Worker init timed out"));
+      }, SCRIPT_POLL_TIMEOUT_MS);
+
+      const origHandler = _warmWorker!.onmessage;
+      _warmWorker!.onmessage = (e) => {
+        if (e.data.type === "ready") {
+          clearTimeout(timeout);
+          _workerReady = true;
+          // Restore the standard handler
+          _warmWorker!.onmessage = origHandler;
+          resolve();
+        }
+        // Forward to standard handler too
+        if (origHandler) (origHandler as (e: MessageEvent) => void)(e);
+      };
+    });
+  }
+
+  return _initPromise.then(() => _warmWorker!);
+}
+
 /**
- * Execute Python code in a Web Worker with a timeout.
- * If the code runs longer than `timeoutMs`, the worker is terminated.
+ * Execute Python code in the persistent warm Worker.
+ * Times out individual executions without killing the worker.
+ * If the worker becomes unresponsive, it is destroyed and recreated.
  */
 export function runPythonInWorker(
   code: string,
   timeoutMs = DEFAULT_EXECUTION_TIMEOUT_MS
 ): Promise<PyodideRunResult> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker("/pyodide-worker.js");
-    let settled = false;
+  return new Promise(async (resolve) => {
+    try {
+      const worker = await getWarmWorker();
+      const id = ++_msgId;
 
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        worker.terminate();
+      const timer = setTimeout(() => {
+        _pending.delete(id);
+        // Hard-kill the unresponsive worker so next call gets a fresh one
+        destroyWorker();
         resolve({ stdout: "", stderr: "", error: "Execution timed out (10s limit). Check for infinite loops." });
-      }
-    }, timeoutMs);
+      }, timeoutMs);
 
-    worker.onmessage = (e) => {
-      const { type, result, error } = e.data;
-      if (type === "ready") {
-        worker.postMessage({ type: "run", code, id: 1 });
-      } else if (type === "result" && !settled) {
-        settled = true;
-        clearTimeout(timer);
-        worker.terminate();
-        resolve(result as PyodideRunResult);
-      } else if (type === "error" && !settled) {
-        settled = true;
-        clearTimeout(timer);
-        worker.terminate();
-        resolve({ stdout: "", stderr: "", error: error || "Execution error" });
-      }
-    };
-
-    worker.onerror = () => {
-      if (!settled) {
-        settled = true;
-        clearTimeout(timer);
-        worker.terminate();
-        resolve({ stdout: "", stderr: "", error: "Worker error. Please try again." });
-      }
-    };
-
-    worker.postMessage({ type: "init" });
+      _pending.set(id, { resolve, timer });
+      worker.postMessage({ type: "run", code, id });
+    } catch {
+      resolve({ stdout: "", stderr: "", error: "Failed to start Python runtime. Please retry." });
+    }
   });
 }
 
@@ -133,7 +206,12 @@ export function usePyodide(autoLoad = false) {
     }
   }, [autoLoad, load]);
 
-  /** Run Python code via Web Worker with timeout kill-switch */
+  /** Pre-warm the persistent worker on mount */
+  useEffect(() => {
+    getWarmWorker().catch(() => { /* swallow — will retry on next run */ });
+  }, []);
+
+  /** Run Python code via persistent warm Worker with timeout */
   const runWithTimeout = useCallback(
     (code: string, timeoutMs = DEFAULT_EXECUTION_TIMEOUT_MS) =>
       runPythonInWorker(code, timeoutMs),

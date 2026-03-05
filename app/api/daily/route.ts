@@ -5,6 +5,7 @@ import admin from "firebase-admin";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { evaluateAchievements } from "@/lib/achievements";
 import { checkLevelUp } from "@/lib/levels";
+import { dailySubmitSchema, parseBody } from "@/lib/validators";
 
 /* ─── Daily & Weekly Challenge Pools ─────────────────────────────────── *
  * Deterministic selection based on date — same challenge for all users.
@@ -152,23 +153,67 @@ const WEEKLY_POOL: ChallengeTemplate[] = [
 
 /* ─── Helper: deterministic challenge selection from date ─────────────── */
 
-function getDailyChallenge(dateStr: string): ChallengeTemplate & { id: string } {
-  // Simple hash from date string
-  let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = (hash * 31 + dateStr.charCodeAt(i)) | 0;
+/* ─── Firestore Pool Cache ────────────────────────────────────────────── *
+ * Try reading from Firestore pools first (admin-manageable).
+ * Falls back to in-memory arrays if Firestore pool is empty.
+ * Cache for 10 minutes to avoid hammering Firestore.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+let _dailyPoolCache: ChallengeTemplate[] | null = null;
+let _weeklyPoolCache: ChallengeTemplate[] | null = null;
+let _poolCacheTime = 0;
+const POOL_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function loadPool(collection: string, fallback: ChallengeTemplate[]): Promise<ChallengeTemplate[]> {
+  try {
+    const snap = await db.collection(collection).get();
+    if (snap.empty) return fallback;
+    return snap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        title: d.title,
+        description: d.description,
+        difficulty: d.difficulty || 1,
+        starterCode: d.starterCode || "",
+        expectedOutput: d.expectedOutput || "",
+      };
+    });
+  } catch {
+    return fallback;
   }
-  const index = Math.abs(hash) % DAILY_POOL.length;
-  return { ...DAILY_POOL[index], id: `daily_${dateStr}` };
 }
 
-function getWeeklyChallenge(weekStr: string): ChallengeTemplate & { id: string } {
+async function getDailyPool(): Promise<ChallengeTemplate[]> {
+  if (_dailyPoolCache && Date.now() - _poolCacheTime < POOL_CACHE_TTL) return _dailyPoolCache;
+  _dailyPoolCache = await loadPool("daily_pool", DAILY_POOL);
+  _poolCacheTime = Date.now();
+  return _dailyPoolCache;
+}
+
+async function getWeeklyPool(): Promise<ChallengeTemplate[]> {
+  if (_weeklyPoolCache && Date.now() - _poolCacheTime < POOL_CACHE_TTL) return _weeklyPoolCache;
+  _weeklyPoolCache = await loadPool("weekly_pool", WEEKLY_POOL);
+  return _weeklyPoolCache;
+}
+
+function hashString(s: string): number {
   let hash = 0;
-  for (let i = 0; i < weekStr.length; i++) {
-    hash = (hash * 31 + weekStr.charCodeAt(i)) | 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) | 0;
   }
-  const index = Math.abs(hash) % WEEKLY_POOL.length;
-  return { ...WEEKLY_POOL[index], id: `weekly_${weekStr}` };
+  return Math.abs(hash);
+}
+
+async function getDailyChallenge(dateStr: string): Promise<ChallengeTemplate & { id: string }> {
+  const pool = await getDailyPool();
+  const index = hashString(dateStr) % pool.length;
+  return { ...pool[index], id: `daily_${dateStr}` };
+}
+
+async function getWeeklyChallenge(weekStr: string): Promise<ChallengeTemplate & { id: string }> {
+  const pool = await getWeeklyPool();
+  const index = hashString(weekStr) % pool.length;
+  return { ...pool[index], id: `weekly_${weekStr}` };
 }
 
 function getWeekString(date: Date): string {
@@ -200,8 +245,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const today = now.toISOString().split("T")[0];
     const weekStr = getWeekString(now);
 
-    const daily = getDailyChallenge(today);
-    const weekly = getWeeklyChallenge(weekStr);
+    const daily = await getDailyChallenge(today);
+    const weekly = await getWeeklyChallenge(weekStr);
 
     // Tomorrow midnight for daily expiry
     const tomorrow = new Date(now);
@@ -277,19 +322,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { challengeId, code, output } = body || {};
-
-    if (!challengeId || !code) {
-      return NextResponse.json({ error: "Missing challengeId or code" }, { status: 400 });
-    }
+    const raw = await request.json();
+    const parsed = parseBody(dailySubmitSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { challengeId, code, output } = parsed.data;
 
     // Determine which challenge this is
     const now = new Date();
     const today = now.toISOString().split("T")[0];
     const weekStr = getWeekString(now);
-    const daily = getDailyChallenge(today);
-    const weekly = getWeeklyChallenge(weekStr);
+    const daily = await getDailyChallenge(today);
+    const weekly = await getWeeklyChallenge(weekStr);
 
     let challenge: (ChallengeTemplate & { id: string }) | null = null;
     let type: "daily" | "weekly" = "daily";

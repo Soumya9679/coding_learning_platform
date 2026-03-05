@@ -4,21 +4,17 @@ import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { evaluateAchievements } from "@/lib/achievements";
 import { checkLevelUp } from "@/lib/levels";
+import { verifyXpToken } from "@/lib/xpToken";
+import { xpClaimSchema, parseBody } from "@/lib/validators";
 
 // Valid XP actions and their point values
-const XP_ACTIONS: Record<string, number> = {
+export const XP_ACTIONS: Record<string, number> = {
   challenge_complete: 100,
   challenge_first_try: 150,
   game_complete: 50,
   game_perfect: 100,
   daily_login: 25,
 };
-
-interface XpBody {
-  action?: string;
-  challengeId?: string;
-  gameId?: string;
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -27,16 +23,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
     }
 
-    const body: XpBody = await request.json();
-    const { action = "", challengeId, gameId } = body;
+    const raw = await request.json();
+    const parsed = parseBody(xpClaimSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { xpToken } = parsed.data;
 
-    const xpAmount = XP_ACTIONS[action];
-    if (!xpAmount) {
+    // Verify the signed, single-use proof token
+    const proof = await verifyXpToken(xpToken, user.uid);
+    if (!proof) {
       return NextResponse.json(
-        { error: `Invalid action. Allowed: ${Object.keys(XP_ACTIONS).join(", ")}` },
-        { status: 400 }
+        { error: "Invalid or expired XP proof token." },
+        { status: 403 }
       );
     }
+
+    const { action, challengeId, gameId, amount: xpAmount } = proof;
 
     // Find user doc by uid
     const userRef = db.collection("users").doc(user.uid);

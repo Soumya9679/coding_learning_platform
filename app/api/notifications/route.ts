@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { notificationPatchSchema, notificationDeleteSchema, parseBody } from "@/lib/validators";
 
 /**
  * GET /api/notifications — get notifications for the current user.
@@ -92,8 +93,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { ids, all } = body || {};
+    const raw = await request.json();
+    const parsed = parseBody(notificationPatchSchema, raw);
+    if (parsed.error) return parsed.error;
+    const body = parsed.data;
+    const all = "all" in body ? body.all : false;
+    const ids = "ids" in body ? body.ids : undefined;
 
     if (all) {
       // Mark all as read
@@ -145,11 +150,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { id } = body || {};
-    if (!id) {
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
-    }
+    const raw = await request.json();
+    const parsed = parseBody(notificationDeleteSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { id } = parsed.data;
 
     await db
       .collection("users")

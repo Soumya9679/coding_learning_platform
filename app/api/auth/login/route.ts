@@ -9,11 +9,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
-
-interface LoginBody {
-  usernameOrEmail?: string;
-  password?: string;
-}
+import { loginSchema, parseBody } from "@/lib/validators";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -26,16 +22,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
       );
     }
-    const body: LoginBody = await request.json();
-    const { usernameOrEmail = "", password = "" } = body || {};
+    const raw = await request.json();
+    const parsed = parseBody(loginSchema, raw);
+    if (parsed.error) return parsed.error;
+    const { usernameOrEmail, password } = parsed.data;
     const identifier = usernameOrEmail.trim().toLowerCase();
-
-    if (!identifier || !password) {
-      return NextResponse.json(
-        { error: "Username/email and password are both required." },
-        { status: 400 }
-      );
-    }
 
     const lookupField = identifier.includes("@") ? "emailNormalized" : "usernameNormalized";
     const userRecord = await getUserByField(lookupField, identifier);
