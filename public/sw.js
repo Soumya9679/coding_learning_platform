@@ -1,19 +1,37 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "pulsepy-v1";
+const CACHE_NAME = "pulsepy-v2";
 const OFFLINE_URL = "/offline";
 
-// Assets to precache for offline game access
+// Only precache truly public assets — never auth-protected routes
 const PRECACHE_URLS = [
-  "/",
   "/offline",
+];
+
+/** Routes that require login — never serve from cache */
+const AUTH_ROUTES = [
+  "/ide",
   "/gamified",
   "/game1",
   "/game2",
   "/game3",
   "/game4",
   "/game5",
+  "/profile",
+  "/settings",
+  "/history",
+  "/leaderboard",
+  "/duels",
+  "/community",
+  "/paths",
+  "/daily",
+  "/progress",
+  "/admin",
 ];
+
+function isAuthRoute(pathname) {
+  return AUTH_ROUTES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -37,17 +55,31 @@ self.addEventListener("fetch", (event) => {
   // Skip non-GET
   if (request.method !== "GET") return;
 
-  // Skip API calls and auth routes — always go to network
   const url = new URL(request.url);
+
+  // Skip API calls — always hit network
   if (url.pathname.startsWith("/api/")) return;
 
-  // Network-first for navigations, cache-first for static assets
+  // Auth-protected routes — always network, never cache navigations
+  if (isAuthRoute(url.pathname)) {
+    if (request.mode === "navigate") {
+      event.respondWith(
+        fetch(request).catch(() => caches.match(OFFLINE_URL))
+      );
+    }
+    return;
+  }
+
+  // Public navigations: network-first, cache fallback
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          // Only cache successful (200) responses, not redirects
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return response;
         })
         .catch(() => caches.match(request).then((r) => r || caches.match(OFFLINE_URL)))
@@ -58,8 +90,7 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          // Only cache same-origin assets
-          if (url.origin === self.location.origin) {
+          if (url.origin === self.location.origin && response.ok) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

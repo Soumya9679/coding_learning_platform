@@ -223,7 +223,7 @@ coding_learning_platform/
 │   ├── AdminGuard.tsx          # Admin-only route wrapper (checks /api/admin/check)
 │   ├── ThemeToggle.tsx         # Dark/light theme toggle button
 │   ├── ThemeHydrator.tsx       # Server-safe theme hydration
-│   ├── PWARegister.tsx         # Service worker registration for PWA
+│   ├── PWARegister.tsx         # Service worker registration + OAuth token pickup
 │   └── ui/                     # Reusable UI component library
 │       ├── Button.tsx           # 5 variants, 3 sizes, loading state
 │       ├── Input.tsx            # Label, error display with role="alert", auto-id
@@ -276,14 +276,13 @@ coding_learning_platform/
 ├── public/
 │   ├── favicon.ico             # PulsePy browser tab icon
 │   ├── manifest.json           # PWA web app manifest
-│   ├── sw.js                   # Service worker (cache-first + offline fallback)
+│   ├── sw.js                   # Service worker (auth-aware caching, network-only for protected routes, offline fallback)
 │   └── icons/                  # PWA app icons (192x192, 512x512)
 ├── jest.config.ts              # Jest configuration (next/jest + jsdom)
 ├── jest.setup.ts               # Jest setup — @testing-library/jest-dom matchers
 ├── playwright.config.ts        # Playwright E2E config (Chromium, webServer auto-start)
-├── sentry.client.config.ts     # Sentry client-side init (replays, error filtering)
-├── sentry.server.config.ts     # Sentry server-side init
-├── sentry.edge.config.ts       # Sentry edge runtime init
+├── instrumentation.ts          # Sentry server + edge init (Next.js instrumentation hook)
+├── instrumentation-client.ts   # Sentry client-side init (replays, error filtering, router transitions)
 ├── tsconfig.json
 ├── next.config.ts              # Security headers, image optimization, API caching, Sentry integration
 ├── postcss.config.mjs
@@ -393,7 +392,7 @@ Edit `.env.local` with your values:
 | `SENTRY_ORG` | Optional | Sentry organization slug (for source map uploads) |
 | `SENTRY_PROJECT` | Optional | Sentry project slug |
 | `SENTRY_AUTH_TOKEN` | Optional | Sentry auth token (for source map uploads) |
-| `NEXT_PUBLIC_SITE_URL` | Optional | Canonical site URL for sitemap/robots (default: `https://pulsepy.dev`) |
+| `NEXT_PUBLIC_SITE_URL` | Optional | Canonical site URL for sitemap/robots (default: `https://pulsepy.tech`) |
 
 ### 3. Run the dev server
 
@@ -517,7 +516,7 @@ npm start
 - **OAuth 2.0** — Google and GitHub login with PKCE state cookies, automatic user linking by email
 - **Error tracking** — Sentry integration (client, server, edge) with source maps, replay, and error filtering
 - **Firestore challenge pools** — Daily, weekly, and duel challenges served from admin-managed Firestore pools with 10-min cache and hardcoded fallback
-- **PWA** — Service worker with cache-first strategy for static assets, network-first for pages, offline fallback
+- **PWA** — Service worker with auth-aware caching: protected routes always hit network (never served from cache), cache-first for static assets, network-first for public pages with offline fallback
 
 ---
 
@@ -576,6 +575,7 @@ Admin users see a red **Admin** link in the navbar. The admin layout uses a dist
 
 | Date | Change |
 |------|--------|
+| 2026-03-06 | **Service Worker & Auth Fix** — Rewrote SW (v2) to never cache auth-protected routes (fixes post-login redirect loop on `/ide`, `/gamified`, game pages); removed protected routes from precache list; only cache `200 OK` responses (not redirects); added OAuth token pickup in `PWARegister` (reads `pulsepy_oauth_token` cookie → localStorage); added Google & GitHub OAuth buttons to login/signup pages; removed username from navbar (avatar + level badge only); redesigned daily challenge UI (gradient hero header, single-column stacked layout, inline expected output, taller editor); migrated Sentry to `instrumentation.ts` + `instrumentation-client.ts` (Next.js 15 pattern) |
 | 2026-03-05 | **Tier 1 Production Hardening** — Persistent Pyodide worker (singleton warm worker pattern), HMAC-signed XP proof tokens (anti-cheat with Firestore nonce), Zod request validation on all API routes (20+ schemas), Upstash Redis rate limiting with in-memory fallback, Sentry error tracking (client/server/edge), Firestore-backed challenge pools (admin CRUD + seed + 10-min cache), expanded test suite (109 tests across 9 suites — levels, validators, achievements, rateLimit, auth, utils, components), Playwright E2E test setup (10 smoke tests), audit log types extended for pool operations |
 | 2026-02-23 | **Progression & Engagement Update** — 15-level progression system (Newbie → Code God) with unique colors & icons, 30-achievement unlock engine (5 rarity tiers, 7 categories, auto-evaluation, Firestore persistence), notification center (bell icon, unread badge, polling, mark-all-read), daily & weekly coding challenges (14 daily + 4 weekly, 2×/3× XP multipliers, deterministic rotation, Pyodide editor), progress dashboard (GitHub-style 365-day streak calendar, 30-day XP bar chart, XP breakdown, filterable achievement grid, level progress bar, milestone feed), level badge in navbar, rarity-colored achievements on profile, session enriched with XP, Badge component extended with `info` variant |
 | 2026-02-23 | **Social & Multiplayer Sprint** — Real-time coding duels (lobby, arena, timer, +50 XP), community challenge builder, challenge discussion/comments, social features (follow/friends, share achievements), OAuth login (Google & GitHub), PWA support (manifest, service worker, offline caching), mobile-responsive IDE (collapsible sidebar, touch-friendly editor) |
