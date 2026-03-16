@@ -36,9 +36,9 @@ Includes a full **Admin Panel** for user management, challenge CRUD, platform an
 | Feature | Route | Description |
 |---------|-------|-------------|
 | Landing Page | `/` | Hero, stats, feature grid, CTA |
-| Sign Up | `/signup` | 5-field registration with real-time field validation, inline password strength indicators |
-| Log In | `/login` | Email/username + password auth with show/hide toggle, "Forgot Password?" link |
-| Forgot Password | `/forgot-password` | Identity-verified password reset (email + username) |
+| Sign Up | `/signup` | Premium two-column layout, multi-step registration wizard (Identity → Security), OTP email verification |
+| Log In | `/login` | Two-column layout with animated branding panel, "Remember me" toggle, verified success banners |
+| Forgot Password | `/forgot-password` | Multi-step OTP flow (Email → OTP Verification → New Password with strength meter) |
 | Live IDE | `/ide` | Firestore-backed challenges, Pyodide runtime, progress bar, timer, difficulty + category filters, AI mentor hints, challenge discussion |
 | Learning Paths | `/paths` | Structured challenge sequences grouped by topic, progress tracking per path, overall progress bar |
 | Leaderboard | `/leaderboard` | Dynamic rankings from Firestore, personal stats card, achievements, XP guide, social follow/share |
@@ -575,6 +575,7 @@ Admin users see a red **Admin** link in the navbar. The admin layout uses a dist
 
 | Date | Change |
 |------|--------|
+| 2026-03-17 | **Auth Pages Professional Upgrade** — Rewrote authentication flows into a premium two-column SaaS layout with an animated `AuthBrandingPanel`. Replaced the signup and forgot-password flows with secure, multi-step 6-digit OTP email verification wizards (`Identity -> Security`). Added a dedicated `/verify` OTP page with auto-submit, paste-support, and 60s resend cooldown. Fixed deep Next.js `framer-motion` SSR hydration bugs related to initial entry animations. |
 | 2026-03-06 | **Service Worker & Auth Fix** — Rewrote SW (v2) to never cache auth-protected routes (fixes post-login redirect loop on `/ide`, `/gamified`, game pages); removed protected routes from precache list; only cache `200 OK` responses (not redirects); added OAuth token pickup in `PWARegister` (reads `pulsepy_oauth_token` cookie → localStorage); added Google & GitHub OAuth buttons to login/signup pages; removed username from navbar (avatar + level badge only); redesigned daily challenge UI (gradient hero header, single-column stacked layout, inline expected output, taller editor); migrated Sentry to `instrumentation.ts` + `instrumentation-client.ts` (Next.js 15 pattern) |
 | 2026-03-05 | **Tier 1 Production Hardening** — Persistent Pyodide worker (singleton warm worker pattern), HMAC-signed XP proof tokens (anti-cheat with Firestore nonce), Zod request validation on all API routes (20+ schemas), Upstash Redis rate limiting with in-memory fallback, Sentry error tracking (client/server/edge), Firestore-backed challenge pools (admin CRUD + seed + 10-min cache), expanded test suite (109 tests across 9 suites — levels, validators, achievements, rateLimit, auth, utils, components), Playwright E2E test setup (10 smoke tests), audit log types extended for pool operations |
 | 2026-02-23 | **Progression & Engagement Update** — 15-level progression system (Newbie → Code God) with unique colors & icons, 30-achievement unlock engine (5 rarity tiers, 7 categories, auto-evaluation, Firestore persistence), notification center (bell icon, unread badge, polling, mark-all-read), daily & weekly coding challenges (14 daily + 4 weekly, 2×/3× XP multipliers, deterministic rotation, Pyodide editor), progress dashboard (GitHub-style 365-day streak calendar, 30-day XP bar chart, XP breakdown, filterable achievement grid, level progress bar, milestone feed), level badge in navbar, rarity-colored achievements on profile, session enriched with XP, Badge component extended with `info` variant |
