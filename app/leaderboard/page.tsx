@@ -215,7 +215,7 @@ export default function LeaderboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-8">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-4 sm:gap-8">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       <Target className="w-4 h-4 text-accent-light" />
@@ -246,7 +246,7 @@ export default function LeaderboardPage() {
                   </div>
                   <button
                     onClick={shareAchievements}
-                    className="relative p-2 rounded-lg text-muted hover:text-accent hover:bg-accent-muted transition-colors"
+                    className="relative p-2 rounded-lg text-muted hover:text-accent hover:bg-accent-muted transition-colors col-span-2 sm:col-span-1 flex items-center justify-center"
                     title="Share achievements"
                   >
                     <Share2 className="w-4 h-4" />
@@ -352,13 +352,13 @@ export default function LeaderboardPage() {
                 {!loading && !error && entries.length > 0 && (
                   <>
                     {/* Table Header */}
-                    <div className="grid grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 px-4 py-2 text-xs font-medium text-muted uppercase tracking-wider">
+                    <div className="grid grid-cols-[40px_1fr_60px] sm:grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 px-4 py-2 text-xs font-medium text-muted uppercase tracking-wider">
                       <span>Rank</span>
                       <span>Coder</span>
                       <span className="text-center">XP</span>
-                      <span className="text-center">Solved</span>
-                      <span className="text-center">Streak</span>
-                      <span></span>
+                      <span className="text-center hidden sm:block">Solved</span>
+                      <span className="text-center hidden sm:block">Streak</span>
+                      <span className="hidden sm:block"></span>
                     </div>
 
                     {/* Rows */}
@@ -377,7 +377,7 @@ export default function LeaderboardPage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.05 * i }}
-                            className={`grid grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 items-center px-4 py-3 rounded-xl transition-colors ${
+                            className={`grid grid-cols-[40px_1fr_60px] sm:grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 items-center px-4 py-3 rounded-xl transition-colors ${
                               isCurrentUser
                                 ? "bg-accent-muted/30 border border-accent/20"
                                 : isTopThree
@@ -429,20 +429,20 @@ export default function LeaderboardPage() {
                             </div>
 
                             {/* Challenges */}
-                            <div className="text-center">
+                            <div className="text-center hidden sm:block">
                               <span className="text-sm font-mono text-muted">
                                 {entry.challengesCompleted}/10
                               </span>
                             </div>
 
                             {/* Streak */}
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="hidden sm:flex items-center justify-center gap-1">
                               <Flame className="w-3 h-3 text-accent-hot" />
                               <span className="text-sm font-mono">{entry.streak}d</span>
                             </div>
 
                             {/* Follow */}
-                            <div className="flex items-center justify-center">
+                            <div className="hidden sm:flex items-center justify-center">
                               {!isCurrentUser && (
                                 <button
                                   onClick={() => toggleFollow(entry.uid)}
@@ -480,7 +480,7 @@ export default function LeaderboardPage() {
                     {/* Current User (if not in top entries) */}
                     {!isInLeaderboard && user && (
                       <div className="pt-4 border-t border-border">
-                        <div className="grid grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 items-center px-4 py-3 rounded-xl bg-accent-muted/30 border border-accent/20">
+                        <div className="grid grid-cols-[40px_1fr_60px] sm:grid-cols-[60px_1fr_80px_80px_80px_48px] gap-2 items-center px-4 py-3 rounded-xl bg-accent-muted/30 border border-accent/20">
                           <div className="flex items-center justify-center">
                             <span className="text-sm font-mono text-accent-light">#{currentUserRank}</span>
                           </div>
@@ -495,14 +495,14 @@ export default function LeaderboardPage() {
                           <div className="text-center">
                             <span className="text-sm font-mono font-semibold">{(currentUserEntry?.xp ?? 0).toLocaleString()}</span>
                           </div>
-                          <div className="text-center">
+                          <div className="text-center hidden sm:block">
                             <span className="text-sm font-mono text-muted">{currentUserEntry?.challengesCompleted ?? 0}/10</span>
                           </div>
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="hidden sm:flex items-center justify-center gap-1">
                             <Flame className="w-3 h-3 text-accent-hot" />
                             <span className="text-sm font-mono">{currentUserEntry?.streak ?? 0}d</span>
                           </div>
-                          <div></div>
+                          <div className="hidden sm:block"></div>
                         </div>
                       </div>
                     )}

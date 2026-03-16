@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
@@ -114,7 +114,7 @@ export default function IdePage() {
   const [completedChallenges, setCompletedChallenges] = useState<Set<string>>(new Set());
   const [difficultyFilter, setDifficultyFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [discussionOpen, setDiscussionOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -140,6 +140,13 @@ export default function IdePage() {
       }
     }
     loadChallenges();
+  }, []);
+
+  // Set sidebar default based on screen width
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSidebarOpen(window.innerWidth >= 1024);
+    }
   }, []);
 
   const challenge = challenges.find(c => c.id === selectedChallengeId) || challenges[0];
@@ -506,7 +513,7 @@ export default function IdePage() {
                 <span className="text-sm font-medium">Progress</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-48 h-2 bg-bg-elevated rounded-full overflow-hidden">
+                <div className="w-24 sm:w-48 h-2 bg-bg-elevated rounded-full overflow-hidden">
                   <motion.div 
                     className="h-full bg-gradient-to-r from-accent to-accent-hot"
                     initial={{ width: 0 }}

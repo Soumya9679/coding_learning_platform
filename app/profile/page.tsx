@@ -228,7 +228,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="flex items-center gap-6 flex-wrap justify-center basis-full mt-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 justify-items-center basis-full mt-2">
                     {[
                       { icon: TrendingUp, value: profile.xp.toLocaleString(), label: "Total XP", color: "text-warning" },
                       { icon: Target, value: profile.challengesCompleted, label: "Challenges", color: "text-accent-light" },

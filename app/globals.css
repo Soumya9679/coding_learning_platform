@@ -70,6 +70,22 @@
   }
 }
 
+/* ─── Responsive Typography ─── */
+@media (max-width: 639px) {
+  :root {
+    --font-size-display: 2rem;
+    --font-size-heading: 1.5rem;
+    --font-size-subheading: 1.25rem;
+  }
+}
+@media (min-width: 640px) and (max-width: 767px) {
+  :root {
+    --font-size-display: 2.75rem;
+    --font-size-heading: 1.875rem;
+    --font-size-subheading: 1.375rem;
+  }
+}
+
 /* ─── Base Styles ─── */
 @layer base {
   * {
