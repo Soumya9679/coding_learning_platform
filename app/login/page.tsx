@@ -1,20 +1,26 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, type FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { persistSessionToken, clearSessionToken } from "@/lib/session";
 import { useAuthStore } from "@/lib/store";
 import { Button, Input, StatusMessage } from "@/components/ui";
-import { LogIn, Zap, Eye, EyeOff } from "lucide-react";
+import { LogIn, Zap, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import AuthBrandingPanel from "@/components/AuthBrandingPanel";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const hydrate = useAuthStore((s) => s.hydrate);
-  const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "Enter your credentials to continue.", type: "info" });
+  const [status, setStatus] = useState<{ message: string; type: "info" | "success" | "error" }>({ message: "", type: "info" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Show success banner if arriving from email verification
+  const justVerified = searchParams.get("verified") === "true";
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,36 +63,55 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 lg:py-0">
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[400px] bg-gradient-radial from-accent/10 via-transparent to-transparent pointer-events-none" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative"
-      >
-        <div className="glass-card p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center shadow-glow mb-4">
-              <Zap className="w-6 h-6 text-white" />
+      <div className="w-full max-w-5xl relative flex rounded-2xl overflow-hidden glass-card min-h-[560px]">
+        {/* Left: Branding Panel */}
+        <AuthBrandingPanel />
+
+        {/* Right: Form */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-10">
+          {/* Verified Banner */}
+          {justVerified && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2.5 p-3.5 mb-5 rounded-xl bg-success/10 border border-success/20 text-success text-sm"
+            >
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+              <span>Email verified successfully! You can now sign in.</span>
+            </motion.div>
+          )}
+
+          {/* Header */}
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+            <div className="flex items-center gap-3 mb-4 lg:hidden">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent-hot flex items-center justify-center shadow-glow">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold">PulsePy</span>
             </div>
             <h1 className="text-2xl font-bold">Welcome back</h1>
-            <p className="text-sm text-muted">Sign in to continue your Python journey</p>
-          </div>
+            <p className="text-sm text-muted mt-1">Sign in to continue your Python journey</p>
+          </motion.div>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <Input
-              name="username"
-              type="text"
-              placeholder="Username or Email"
-              label="Username or Email"
-              required
-              disabled={loading}
-              autoComplete="username"
-            />
-            <div className="relative">
+            <motion.div transition={{ delay: 0.1 }}>
+              <Input
+                name="username"
+                type="text"
+                placeholder="Username or Email"
+                label="Username or Email"
+                required
+                disabled={loading}
+                autoComplete="username"
+              />
+            </motion.div>
+
+            <motion.div transition={{ delay: 0.15 }} className="relative">
               <Input
                 name="password"
                 type={showPassword ? "text" : "password"}
@@ -105,23 +130,43 @@ export default function LoginPage() {
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
-            </div>
-            <Button type="submit" loading={loading} className="w-full" size="lg">
-              <LogIn className="w-4 h-4" />
-              Sign In
-            </Button>
-            <StatusMessage message={status.message} type={status.type} />
+            </motion.div>
+
+            {/* Remember me + Forgot */}
+            <motion.div transition={{ delay: 0.2 }} className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none group">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-border bg-bg-elevated accent-accent cursor-pointer"
+                />
+                <span className="group-hover:text-white transition-colors">Remember me</span>
+              </label>
+              <Link href="/forgot-password" className="text-sm text-accent-light hover:text-accent font-medium">
+                Forgot password?
+              </Link>
+            </motion.div>
+
+            <motion.div transition={{ delay: 0.25 }}>
+              <Button type="submit" loading={loading} className="w-full" size="lg">
+                <LogIn className="w-4 h-4" />
+                Sign In
+              </Button>
+            </motion.div>
+
+            {status.message && <StatusMessage message={status.message} type={status.type} />}
           </form>
 
           {/* OAuth Divider */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-6">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted uppercase tracking-wider">or continue with</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
           {/* Social Login */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mt-4">
             <a
               href="/api/auth/oauth/google"
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-bg-elevated border border-border rounded-xl text-sm font-medium text-muted-light hover:text-white hover:border-accent/40 transition-all"
@@ -145,21 +190,26 @@ export default function LoginPage() {
             </a>
           </div>
 
-          <div className="text-center space-y-2">
-            <p className="text-sm text-muted">
-              <Link href="/forgot-password" className="text-accent-light hover:text-accent font-medium">
-                Forgot your password?
-              </Link>
-            </p>
-            <p className="text-sm text-muted">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-accent-light hover:text-accent font-medium">
-                Sign up
-              </Link>
-            </p>
-          </div>
+          <p className="text-center text-sm text-muted mt-4">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-accent-light hover:text-accent font-medium">
+              Sign up
+            </Link>
+          </p>
         </div>
-      </motion.div>
+      </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[85vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }

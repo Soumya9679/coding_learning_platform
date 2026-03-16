@@ -5,14 +5,11 @@ import {
   isValidEmail,
   isStrongPassword,
   getUserByField,
-  buildSessionPayload,
-  signSessionToken,
   hashPassword,
-  getSessionCookieOptions,
-  SESSION_COOKIE_NAME,
 } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { sendOtpEmail } from "@/lib/email";
 
 interface SignupBody {
   fullName?: string;
@@ -73,6 +70,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "That username is already taken." }, { status: 409 });
 
     const passwordHash = await hashPassword(password);
+
+    // Generate 6-digit OTP for email verification
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+    const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
     const userRef = db.collection("users").doc();
     const userProfile = {
       fullName: trimmedFullName,
@@ -88,25 +90,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       completedChallenges: [],
       lastActiveDate: "",
       emailVerified: false,
-      verificationToken: crypto.randomBytes(32).toString("hex"),
-      verificationTokenExpiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+      otpCode,
+      otpExpiry,
+      otpAttempts: 0,
+      otpType: "signup",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     await userRef.set(userProfile);
 
-    const sessionPayload = buildSessionPayload(userRef.id, userProfile);
-    const sessionToken = signSessionToken(sessionPayload);
-    const cookieOpts = getSessionCookieOptions();
+    // Send OTP email (non-blocking failure — user can resend from verify page)
+    try {
+      await sendOtpEmail(normalizedEmail, otpCode, trimmedFullName);
+    } catch (emailErr) {
+      console.error("Failed to send OTP on signup:", emailErr);
+    }
 
-    const response = NextResponse.json(
-      { message: "Account created successfully.", redirectTo: "/", sessionToken },
+    // Don't issue a session token — defer to post-OTP verification
+    return NextResponse.json(
+      {
+        message: "Account created! Check your email for a verification code.",
+        redirectTo: `/verify?email=${encodeURIComponent(normalizedEmail)}`,
+      },
       { status: 201 }
     );
-
-    response.cookies.set(SESSION_COOKIE_NAME, sessionToken, cookieOpts);
-    return response;
   } catch (error) {
     console.error("Signup error", error);
     return NextResponse.json({ error: "Unexpected server error." }, { status: 500 });
