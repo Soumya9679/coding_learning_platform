@@ -75,7 +75,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const otpCode = crypto.randomInt(100000, 999999).toString();
     const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    const userRef = db.collection("users").doc();
     const userProfile = {
       fullName: trimmedFullName,
       email: normalizedEmail,
@@ -98,19 +97,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    await userRef.set(userProfile);
-
-    // Send OTP email (non-blocking failure — user can resend from verify page)
+    // Send OTP email FIRST — if it fails, throw error and don't save.
     try {
       await sendOtpEmail(normalizedEmail, otpCode, trimmedFullName);
     } catch (emailErr) {
       console.error("Failed to send OTP on signup:", emailErr);
+      return NextResponse.json(
+        { error: "Failed to send verification email. Please check your email address." },
+        { status: 500 }
+      );
     }
+
+    // Delete any existing pending signups for this email
+    const pendingSnap = await db.collection("pending_signups").where("emailNormalized", "==", normalizedEmail).get();
+    if (!pendingSnap.empty) {
+      const batch = db.batch();
+      pendingSnap.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    }
+
+    // Save to pending_signups collection
+    const pendingRef = db.collection("pending_signups").doc();
+    await pendingRef.set(userProfile);
 
     // Don't issue a session token — defer to post-OTP verification
     return NextResponse.json(
       {
-        message: "Account created! Check your email for a verification code.",
+        message: "Code sent! Check your email for a verification code.",
         redirectTo: `/verify?email=${encodeURIComponent(normalizedEmail)}`,
       },
       { status: 201 }

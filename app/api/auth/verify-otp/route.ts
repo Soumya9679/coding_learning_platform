@@ -34,12 +34,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Email and 6-digit code are required." }, { status: 400 });
     }
 
-    // Find user
-    const snap = await db
-      .collection("users")
-      .where("emailNormalized", "==", email)
-      .limit(1)
-      .get();
+    // Find user in users or pending_signups
+    let snap = await db.collection("users").where("emailNormalized", "==", email).limit(1).get();
+    let isPending = false;
+    
+    if (snap.empty) {
+      snap = await db.collection("pending_signups").where("emailNormalized", "==", email).limit(1).get();
+      if (!snap.empty) {
+        isPending = true;
+      }
+    }
 
     if (snap.empty) {
       return NextResponse.json({ error: "Invalid verification attempt." }, { status: 404 });
@@ -88,14 +92,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       otpType: null,
     };
 
+    let finalUserDocId = userDoc.id;
+
     // For signup verification: mark email verified
     if (data.otpType !== "reset") {
       updatePayload.emailVerified = true;
       updatePayload.verificationToken = null;
       updatePayload.verificationTokenExpiry = null;
+      
+      if (isPending) {
+        // Move to users collection
+        const newUserRef = db.collection("users").doc();
+        await newUserRef.set({
+          ...data,
+          ...updatePayload
+        });
+        await userDoc.ref.delete();
+        finalUserDocId = newUserRef.id;
+      } else {
+        await userDoc.ref.update(updatePayload);
+      }
+    } else {
+      await userDoc.ref.update(updatePayload);
     }
-
-    await userDoc.ref.update(updatePayload);
 
     // For signup: send welcome email (non-blocking)
     if (data.otpType !== "reset") {
@@ -111,7 +130,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // For signup: issue session token
-    const sessionPayload = buildSessionPayload(userDoc.id, data);
+    const sessionPayload = buildSessionPayload(finalUserDocId, { ...data, ...updatePayload });
     const sessionToken = signSessionToken(sessionPayload);
     const cookieOpts = getSessionCookieOptions();
 

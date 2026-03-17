@@ -29,12 +29,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Valid email required." }, { status: 400 });
     }
 
-    // Find user by email
-    const snap = await db
-      .collection("users")
-      .where("emailNormalized", "==", email)
-      .limit(1)
-      .get();
+    let snap = await db.collection("users").where("emailNormalized", "==", email).limit(1).get();
+
+    if (snap.empty && type === "signup") {
+      snap = await db.collection("pending_signups").where("emailNormalized", "==", email).limit(1).get();
+    }
 
     if (snap.empty) {
       // For security, don't reveal whether the email exists for reset

@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = process.env.EMAIL_FROM || "PulsePy <onboarding@resend.dev>";
+const FROM_EMAIL = process.env.EMAIL_FROM || "PulsePy <onboarding@pulsepy.tech>";
 
 /**
  * Send a 6-digit OTP verification email.
