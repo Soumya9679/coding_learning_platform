@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { notificationPatchSchema, notificationDeleteSchema, parseBody } from "@/lib/validators";
 
 /**
@@ -12,7 +12,7 @@ import { notificationPatchSchema, notificationDeleteSchema, parseBody } from "@/
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`notif:${ip}`, { max: 60, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`notif:${ip}`, { max: 60, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests." },

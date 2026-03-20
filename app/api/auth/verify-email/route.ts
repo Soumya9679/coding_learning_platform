@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 /**
  * GET /api/auth/verify-email?token=xxx — verify a user's email address.
@@ -8,7 +8,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`verify-email:${ip}`, { max: 10, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`verify-email:${ip}`, { max: 10, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests." },

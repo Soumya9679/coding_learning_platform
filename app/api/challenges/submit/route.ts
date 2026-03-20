@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { generateXpToken } from "@/lib/xpToken";
 import { challengeSubmitSchema, parseBody } from "@/lib/validators";
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`submit:${user.uid}:${ip}`, { max: 20, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`submit:${user.uid}:${ip}`, { max: 20, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many submissions. Please slow down." },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest, hashPassword, comparePassword, isStrongPassword } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 /**
  * PATCH /api/settings — change password or delete account.
@@ -9,7 +9,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`settings:${ip}`, { max: 5, windowSeconds: 300 });
+    const rl = await checkRateLimitAsync(`settings:${ip}`, { max: 5, windowSeconds: 300 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait." },
@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`settings-delete:${ip}`, { max: 3, windowSeconds: 900 });
+    const rl = await checkRateLimitAsync(`settings-delete:${ip}`, { max: 3, windowSeconds: 900 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait." },

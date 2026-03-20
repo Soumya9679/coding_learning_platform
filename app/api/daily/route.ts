@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { evaluateAchievements } from "@/lib/achievements";
 import { checkLevelUp } from "@/lib/levels";
 import { dailySubmitSchema, parseBody } from "@/lib/validators";
@@ -231,7 +231,7 @@ function getWeekString(date: Date): string {
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`daily:${ip}`, { max: 30, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`daily:${ip}`, { max: 30, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many requests." }, { status: 429 });
     }
@@ -312,7 +312,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`daily-submit:${ip}`, { max: 20, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`daily-submit:${ip}`, { max: 20, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many submissions." }, { status: 429 });
     }

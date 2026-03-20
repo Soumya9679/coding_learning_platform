@@ -8,7 +8,7 @@ import {
   hashPassword,
 } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { sendOtpEmail } from "@/lib/email";
 
 interface SignupBody {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Rate limit: 5 signups per 15 minutes per IP
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`signup:${ip}`, { max: 5, windowSeconds: 900 });
+    const rl = await checkRateLimitAsync(`signup:${ip}`, { max: 5, windowSeconds: 900 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many signup attempts. Try again in ${rl.retryAfterSeconds}s.` },
@@ -108,9 +108,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Delete any existing pending signups for this email
+    // Check for existing pending signup
     const pendingSnap = await db.collection("pending_signups").where("emailNormalized", "==", normalizedEmail).get();
     if (!pendingSnap.empty) {
+      const existingDoc = pendingSnap.docs[0].data();
+      // If there is an active OTP that hasn't expired yet, do not allow overriding the signup.
+      // This prevents a pre-account takeover where an attacker sets their own password before the real user verifies.
+      if (existingDoc.otpExpiry && Date.now() < existingDoc.otpExpiry) {
+        return NextResponse.json(
+          { error: "A signup is already pending for this email. Please check your inbox for the code or wait 10 minutes." },
+          { status: 409 }
+        );
+      }
+      // If expired, it's safe to delete old pending signups
       const batch = db.batch();
       pendingSnap.docs.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();

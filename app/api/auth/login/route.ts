@@ -8,14 +8,14 @@ import {
   getSessionCookieOptions,
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { loginSchema, parseBody } from "@/lib/validators";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Rate limit: 10 attempts per 15 minutes per IP
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`login:${ip}`, { max: 10, windowSeconds: 900 });
+    const rl = await checkRateLimitAsync(`login:${ip}`, { max: 10, windowSeconds: 900 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many login attempts. Try again in ${rl.retryAfterSeconds}s.` },

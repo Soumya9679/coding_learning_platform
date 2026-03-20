@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { computeLevel } from "@/lib/levels";
 import { ACHIEVEMENTS, getAchievementRarityStats } from "@/lib/achievements";
 
@@ -11,7 +11,7 @@ import { ACHIEVEMENTS, getAchievementRarityStats } from "@/lib/achievements";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`progress:${ip}`, { max: 20, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`progress:${ip}`, { max: 20, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many requests." }, { status: 429 });
     }

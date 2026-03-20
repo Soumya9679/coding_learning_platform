@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, admin } from "@/lib/firebase";
 import { authenticateFromRequest } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`presence:${session.uid}:${ip}`, {
+    const rl = await checkRateLimitAsync(`presence:${session.uid}:${ip}`, {
       max: 120,           // generous: typing + heartbeat combined
       windowSeconds: 60,
     });

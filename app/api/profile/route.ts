@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest, sanitizeText } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { computeLevel } from "@/lib/levels";
 import { ACHIEVEMENTS, getAchievementRarityStats } from "@/lib/achievements";
 
@@ -11,7 +11,7 @@ import { ACHIEVEMENTS, getAchievementRarityStats } from "@/lib/achievements";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`profile:${ip}`, { max: 30, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`profile:${ip}`, { max: 30, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait." },
@@ -40,10 +40,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .get();
     const rank = (higherXp.data().count || 0) + 1;
 
-    // Get recent submissions (sort in-memory to avoid needing a composite index)
+    // Get recent submissions natively ordered to prevent memory leaks
     const subsSnap = await db
       .collection("submissions")
       .where("userId", "==", user.uid)
+      .orderBy("createdAt", "desc")
+      .limit(20)
       .get();
 
     const recentSubmissions = subsSnap.docs
@@ -57,9 +59,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           isRepeat: d.isRepeat,
           createdAt: d.createdAt?.toDate?.()?.toISOString() || "",
         };
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 20);
+      });
 
     // Build achievements (new server-side persistent system)
     const unlockedAchievements: string[] = data.unlockedAchievements || [];

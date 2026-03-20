@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import admin from "firebase-admin";
 import { authenticateFromRequest, sanitizeText } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 // GET /api/community/challenges — list community challenges
 export async function GET(request: NextRequest): Promise<NextResponse> {

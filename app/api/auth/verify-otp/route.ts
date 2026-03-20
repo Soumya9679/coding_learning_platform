@@ -6,7 +6,7 @@ import {
   getSessionCookieOptions,
   SESSION_COOKIE_NAME,
 } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { sendWelcomeEmail } from "@/lib/email";
 
 /**
@@ -18,7 +18,7 @@ import { sendWelcomeEmail } from "@/lib/email";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`verify-otp:${ip}`, { max: 10, windowSeconds: 300 });
+    const rl = await checkRateLimitAsync(`verify-otp:${ip}`, { max: 10, windowSeconds: 300 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many attempts. Please wait." },

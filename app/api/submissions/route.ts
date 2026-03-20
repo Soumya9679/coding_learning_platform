@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 /**
  * GET /api/submissions — list the current user's past submissions with code.
@@ -13,7 +13,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`submissions:${ip}`, { max: 30, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`submissions:${ip}`, { max: 30, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait." },
@@ -38,10 +38,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (challengeId) {
       query = query.where("challengeId", "==", challengeId);
     }
+    
+    // Get total count efficiently
+    const countSnap = await query.count().get();
+    const total = countSnap.data().count;
+    
+    const pageSize = Math.min(limit, 25);
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
 
-    const snap = await query.get();
+    // Fetch only the requested page natively (requires composite index)
+    const snap = await query
+                 .orderBy("createdAt", "desc")
+                 .offset(start)
+                 .limit(pageSize)
+                 .get();
 
-    const allSubmissions = snap.docs
+    const submissions = snap.docs
       .map((doc) => {
         const d = doc.data();
         return {
@@ -54,14 +67,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           isRepeat: d.isRepeat ?? false,
           createdAt: d.createdAt?.toDate?.()?.toISOString() || "",
         };
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      });
 
-    const total = Math.min(allSubmissions.length, limit);
-    const pageSize = Math.min(limit, 25);
-    const totalPages = Math.ceil(total / pageSize);
-    const start = (page - 1) * pageSize;
-    const submissions = allSubmissions.slice(start, start + pageSize);
+
 
     return NextResponse.json({ submissions, page, pageSize, total, totalPages });
   } catch (error) {

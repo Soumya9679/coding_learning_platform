@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateFromRequest } from "@/lib/auth";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 /**
  * Learning paths — curated sequences of challenges grouped by topic.
@@ -45,7 +45,7 @@ const DEFAULT_META = { description: "A collection of coding challenges", color: 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`paths:${ip}`, { max: 30, windowSeconds: 60 });
+    const rl = await checkRateLimitAsync(`paths:${ip}`, { max: 30, windowSeconds: 60 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait." },

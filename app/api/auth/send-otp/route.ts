@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/firebase";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 import { sendOtpEmail, sendPasswordResetOtp } from "@/lib/email";
 
 /**
@@ -13,7 +13,7 @@ import { sendOtpEmail, sendPasswordResetOtp } from "@/lib/email";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`send-otp:${ip}`, { max: 5, windowSeconds: 900 });
+    const rl = await checkRateLimitAsync(`send-otp:${ip}`, { max: 5, windowSeconds: 900 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many requests. Try again in ${rl.retryAfterSeconds}s.` },

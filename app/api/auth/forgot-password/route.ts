@@ -4,7 +4,7 @@ import {
   isStrongPassword,
   hashPassword,
 } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 /**
  * POST /api/auth/forgot-password
@@ -17,7 +17,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`forgot:${ip}`, { max: 5, windowSeconds: 900 });
+    const rl = await checkRateLimitAsync(`forgot:${ip}`, { max: 5, windowSeconds: 900 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `Too many attempts. Try again in ${rl.retryAfterSeconds}s.` },

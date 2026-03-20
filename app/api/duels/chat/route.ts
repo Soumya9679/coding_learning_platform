@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, admin } from "@/lib/firebase";
 import { authenticateFromRequest } from "@/lib/auth";
 import { sanitizeText } from "@/lib/auth";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitAsync, getClientIp } from "@/lib/rateLimit";
 
 const FieldValue = admin.firestore.FieldValue;
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const ip = getClientIp(request);
-    const rl = checkRateLimit(`duelchat:${session.uid}:${ip}`, {
+    const rl = await checkRateLimitAsync(`duelchat:${session.uid}:${ip}`, {
       max: 30,
       windowSeconds: 60,
     });
