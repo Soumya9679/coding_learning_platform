@@ -487,19 +487,19 @@ export default function IdePage() {
   return (
     <AuthGuard>
     {challengesLoading ? (
-      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
+      <div className="min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)] flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-muted">Loading challenges…</p>
         </div>
       </div>
     ) : (
-    <div className="h-[calc(100vh-64px)] overflow-hidden">
+    <div className="min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)] flex flex-col overflow-y-auto lg:overflow-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-accent/5 via-transparent to-transparent pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 relative h-full flex flex-col">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 relative flex-1 w-full flex flex-col min-h-0">
         {/* Top Progress Bar */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -547,7 +547,7 @@ export default function IdePage() {
           </div>
         </motion.div>
 
-        <div className="grid lg:grid-cols-[320px_1fr] gap-4 flex-1 min-h-0">
+        <div className="grid lg:grid-cols-[320px_1fr] gap-4 flex-1 lg:min-h-0 pb-4 lg:pb-0">
           {/* Left Sidebar - Challenge Panel (collapsible on mobile) */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
@@ -676,7 +676,7 @@ export default function IdePage() {
             </div>
 
             {/* Challenge Details Card - Scrollable */}
-            <Card className="flex-1 min-h-0 overflow-y-auto space-y-3 scrollbar-thin">
+            <Card className="flex-1 min-h-0 overflow-y-auto space-y-3 scrollbar-thin max-h-[50vh] lg:max-h-none">
               <div className="flex items-center gap-2">
                 <Badge variant="accent">{challenge.tag}</Badge>
                 <Badge className={difficultyColors[challenge.difficulty as keyof typeof difficultyColors]}>
@@ -713,7 +713,7 @@ export default function IdePage() {
           </motion.aside>
 
           {/* Main Workspace */}
-          <div className="flex flex-col gap-3 min-h-0">
+          <div className="flex flex-col gap-3 lg:min-h-0">
             {/* Editor Card */}
             <div className="flex-shrink-0">
               <div className="bg-bg-card border border-border rounded-2xl p-4 space-y-2">
@@ -758,15 +758,15 @@ export default function IdePage() {
             </div>
 
             {/* Output and Mentor Panels */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:flex-1 lg:min-h-0">
               {/* Output Panel with Tabs */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="min-h-0"
+                className="lg:min-h-0 flex flex-col h-full"
               >
-                <Card className="h-full flex flex-col space-y-2 overflow-hidden">
+                <Card className="flex-1 flex flex-col space-y-2 lg:overflow-hidden">
                   {/* Tabs */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 p-1 bg-bg-elevated rounded-lg">
@@ -807,8 +807,9 @@ export default function IdePage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        className="flex-1 min-h-0 flex flex-col"
                       >
-                        <pre className="p-3 bg-bg-elevated rounded-lg text-xs font-mono h-[80px] overflow-auto text-muted-light border border-border/50">
+                        <pre className="p-3 bg-bg-elevated rounded-lg text-xs font-mono h-[120px] lg:h-auto lg:flex-1 overflow-auto text-muted-light border border-border/50">
                           {output}
                         </pre>
                       </motion.div>
@@ -818,13 +819,14 @@ export default function IdePage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        className="flex-1 min-h-0 flex flex-col"
                       >
                         {testResults.length === 0 ? (
-                          <div className="p-3 bg-bg-elevated rounded-lg text-xs text-muted text-center h-[80px] flex items-center justify-center">
+                          <div className="p-3 bg-bg-elevated rounded-lg text-xs text-muted text-center h-[120px] lg:h-auto lg:flex-1 flex items-center justify-center">
                             Run your code to see test results
                           </div>
                         ) : (
-                          <div className="space-y-1.5 p-2 bg-bg-elevated rounded-lg h-[80px] overflow-auto">
+                          <div className="space-y-1.5 p-2 bg-bg-elevated rounded-lg h-[120px] lg:h-auto lg:flex-1 overflow-auto">
                             {testResults.map((test) => (
                               <div
                                 key={test.index}
@@ -860,9 +862,9 @@ export default function IdePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="min-h-0"
+                className="lg:min-h-0 flex flex-col h-full"
               >
-                <Card className="h-full flex flex-col space-y-2 relative">
+                <Card className="flex-1 flex flex-col space-y-2 relative lg:overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-radial from-accent/10 to-transparent pointer-events-none" />
                   
                   <div className="flex items-center justify-between relative flex-shrink-0">
@@ -881,12 +883,12 @@ export default function IdePage() {
                     </Button>
                   </div>
 
-                  <div className="p-3 bg-gradient-to-br from-accent-muted/40 to-accent-muted/20 rounded-lg border border-accent/10 relative flex-1 overflow-auto">
+                  <div className="p-3 bg-gradient-to-br from-accent-muted/40 to-accent-muted/20 rounded-lg border border-accent/10 relative flex-1 min-h-[120px] lg:min-h-0 overflow-auto flex flex-col">
                     <div className="absolute top-2 right-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                     </div>
-                    <p className="text-xs leading-relaxed pr-3">{mentorHint}</p>
-                    <div className="flex items-center gap-2 pt-2 mt-2 border-t border-accent/10">
+                    <p className="text-xs leading-relaxed pr-3 flex-1">{mentorHint}</p>
+                    <div className="flex items-center gap-2 pt-2 mt-2 border-t border-accent/10 flex-shrink-0">
                       <span className="text-[10px] text-muted font-mono">{mentorTone}</span>
                     </div>
                   </div>
