@@ -40,12 +40,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .get();
     const rank = (higherXp.data().count || 0) + 1;
 
-    // Get recent submissions natively ordered to prevent memory leaks
+    // Fetch naturally and sort manually to prevent missing composite index errors
     const subsSnap = await db
       .collection("submissions")
       .where("userId", "==", user.uid)
-      .orderBy("createdAt", "desc")
-      .limit(20)
       .get();
 
     const recentSubmissions = subsSnap.docs
@@ -59,7 +57,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           isRepeat: d.isRepeat,
           createdAt: d.createdAt?.toDate?.()?.toISOString() || "",
         };
-      });
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20);
 
     // Build achievements (new server-side persistent system)
     const unlockedAchievements: string[] = data.unlockedAchievements || [];

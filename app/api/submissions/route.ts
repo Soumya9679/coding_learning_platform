@@ -39,22 +39,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       query = query.where("challengeId", "==", challengeId);
     }
     
-    // Get total count efficiently
-    const countSnap = await query.count().get();
-    const total = countSnap.data().count;
-    
-    const pageSize = Math.min(limit, 25);
-    const totalPages = Math.ceil(total / pageSize);
-    const start = (page - 1) * pageSize;
+    // Fetch naturally and sort manually (requires no index)
+    const snap = await query.get();
 
-    // Fetch only the requested page natively (requires composite index)
-    const snap = await query
-                 .orderBy("createdAt", "desc")
-                 .offset(start)
-                 .limit(pageSize)
-                 .get();
-
-    const submissions = snap.docs
+    const allSubmissions = snap.docs
       .map((doc) => {
         const d = doc.data();
         return {
@@ -67,9 +55,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           isRepeat: d.isRepeat ?? false,
           createdAt: d.createdAt?.toDate?.()?.toISOString() || "",
         };
-      });
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    const total = allSubmissions.length;
+    const pageSize = Math.min(limit, 25);
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
 
+    const submissions = allSubmissions.slice(start, start + pageSize);
 
     return NextResponse.json({ submissions, page, pageSize, total, totalPages });
   } catch (error) {

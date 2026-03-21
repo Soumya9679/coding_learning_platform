@@ -148,7 +148,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-accent/8 via-transparent to-transparent pointer-events-none" />
 
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-8 relative">
           {loading && (
             <div className="flex items-center justify-center py-32">
               <Loader2 className="w-8 h-8 animate-spin text-accent" />
